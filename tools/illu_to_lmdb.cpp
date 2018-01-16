@@ -186,8 +186,14 @@ int main(int argc, char** argv) {
 					CHECK_EQ(fscanf(fin, "%d", &tmp_id), 1);
           id.push_back(tmp_id);
         }
+        PhotonRecord tmp_photon;
+        tmp_photon.reflection_ = tmp_photon.refraction_ = tmp_photon.depth_ = 0;
+        tmp_photon.rgb_.b_ = tmp_photon.rgb_.g_ = tmp_photon.rgb_.r_ = 0;
+        tmp_photon.pos_ = pos;
+        for (int p = M; p < FLAGS_photon_per_pixel; ++p)
+          photons.push_back(tmp_photon);
 				sort(id.begin(), id.end(), Comparator(pos));
-        for (int p = 0; i < FLAGS_photon_per_pixel; ++i) {
+        for (int p = 0; p < FLAGS_photon_per_pixel; ++p) {
           for (int c = 0; c < 3; ++c) {
             photon_mat[c].set_float_data((p * 5 + 0) * H * W + index, squ_dis(pos, photons[p].pos_));
             photon_mat[c].set_float_data((p * 5 + 2) * H * W + index, photons[p].reflection_);
