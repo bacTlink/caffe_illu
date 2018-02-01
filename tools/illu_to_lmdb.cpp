@@ -1,7 +1,7 @@
 // This program converts illu raw data format to lmdb
 // as Datum proto buffers.
 // Usage:
-//   illu_to_lmdb [FLAGS] raw_file
+//   illu_to_lmdb [FLAGS]
 //
 // where raw_file is the data of illu defined in
 // illu/raw_data_format.
@@ -28,7 +28,7 @@ using std::pair;
 using boost::scoped_ptr;
 using namespace illu;
 
-DEFINE_string(prefix, "", "The prefix of output");
+DEFINE_string(prefix, "raw_data", "The prefix of output");
 DEFINE_string(dst_dir, "data/illu/", "Destination directory");
 DEFINE_string(src_datafile, "data/illu/illu_raw_data.txt", "Source raw datafile");
 DEFINE_int32(photon_per_pixel, 100, "Remain photon count per pixel");
@@ -49,13 +49,15 @@ struct Comparator {
 	Pos p_;
 };
 
-void init_datum(Datum *datum, const int &chas, const int &H, const int &W) {
-  datum->set_channels(chas);
+void init_datum(Datum *datum, const int &C, const int &H, const int &W) {
+  datum->set_channels(C);
   datum->set_height(H);
   datum->set_width(W);
   datum->clear_data();
   datum->clear_float_data();
   datum->set_encoded(false);
+  for (int x = 0; x < C * H * W; ++x)
+    datum->add_float_data(0);
 }
 
 int main(int argc, char** argv) {
@@ -74,7 +76,7 @@ int main(int argc, char** argv) {
         "    illu_to_lmdb [FLAGS]\n");
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-  if (argc != 2) {
+  if (argc != 1) {
     gflags::ShowUsageWithFlagsRestrict(argv[0], "tools/illu_to_lmdb");
     return 1;
   }
@@ -97,6 +99,7 @@ int main(int argc, char** argv) {
 
   int N, P, H, W;
   char filename[100];
+  Datum BRDF_mat[3], rrd_mat, photon_mat[3];
   int preH = -1, preW = -1;
   Datum datum;
   string out;
@@ -104,6 +107,8 @@ int main(int argc, char** argv) {
   FILE* fin = fopen(FLAGS_src_datafile.c_str(), "r");
   CHECK_EQ(fscanf(fin, "%d", &N), 1);
   for (int bat = 0; bat < N; ++bat) {
+    LOG(INFO) << "bat: " << bat;
+
     CHECK_EQ(fscanf(fin, "%s", filename), 1);
     cv::Mat conv = cv::imread(filename);
     CHECK(conv.data);
@@ -115,6 +120,7 @@ int main(int argc, char** argv) {
       CHECK(datum.SerializeToString(&out));
       txn_conv->Put(filename, out);
     }
+    LOG(INFO) << "    converge result: done";
 
     CHECK_EQ(fscanf(fin, "%d", &P), 1);
     photons.clear();
@@ -141,14 +147,14 @@ int main(int argc, char** argv) {
     } else {
       preH = H;
       preW = W;
+      init_datum(&rrd_mat, 3, H, W);
+      for (int i = 0; i < 3; ++i) {
+        init_datum(BRDF_mat + i, 1, H, W);
+        init_datum(photon_mat + i, 5 * FLAGS_photon_per_pixel, H, W);
+      }
+      LOG(INFO) << "Matrix init: done";
     }
 
-    Datum BRDF_mat[3], rrd_mat, photon_mat[3];
-    init_datum(&rrd_mat, 3, H, W);
-    for (int i = 0; i < 3; ++i) {
-      init_datum(BRDF_mat + i, 1, H, W);
-      init_datum(photon_mat + i, 5 * FLAGS_photon_per_pixel, H, W);
-    }
     RGB BRDF_color;
 		Pos pos;
     float reflection, refraction;
@@ -185,7 +191,7 @@ int main(int argc, char** argv) {
           for (int c = 0; c < 3; ++c) {
             photon_mat[c].set_float_data((p * 5 + 0) * H * W + index, squ_dis(pos, photons[p].pos_));
             photon_mat[c].set_float_data((p * 5 + 2) * H * W + index, photons[p].reflection_);
-            photon_mat[c].set_float_data((p * 5 + 2) * H * W + index, photons[p].refraction_);
+            photon_mat[c].set_float_data((p * 5 + 3) * H * W + index, photons[p].refraction_);
             photon_mat[c].set_float_data((p * 5 + 4) * H * W + index, photons[p].depth_);
           }
           photon_mat[0].set_float_data((p * 5 + 1) * H * W + index, photons[p].rgb_.b_);
@@ -197,14 +203,17 @@ int main(int argc, char** argv) {
       CHECK(BRDF_mat[c].SerializeToString(&out));
       txn_BRDF->Put(filename, out);
     }
+    LOG(INFO) << "    BRDF: done";
     CHECK(rrd_mat.SerializeToString(&out));
     for (int c = 0; c < 3; ++c) {
       txn_rrd->Put(filename, out);
     }
+    LOG(INFO) << "    RRD: done";
     for (int c = 0; c < 3; ++c) {
       CHECK(photon_mat[c].SerializeToString(&out));
       txn_photon->Put(filename, out);
     }
+    LOG(INFO) << "    photon map: done";
   }
 
   fclose(fin);
