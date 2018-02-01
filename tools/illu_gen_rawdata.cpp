@@ -19,7 +19,7 @@ DEFINE_int32(N, 10, "Number of cases");
 DEFINE_int32(height, 100, "Height of image");
 DEFINE_int32(width, 100, "Width of image");
 DEFINE_double(min_light_src_height, 1.0, "Lower bound of height of light source");
-DEFINE_double(max_light_src_height, 20.0, "Upper bound of height of light source");
+DEFINE_double(max_light_src_height, 50.0, "Upper bound of height of light source");
 DEFINE_string(dst_datafile, "illu_raw_data.txt", "Destination datafile");
 DEFINE_string(dst_dir, "data/illu/", "Destination directory");
 
@@ -110,15 +110,14 @@ void getImg(int H, int W, double min_height, double max_height,
     }
   }
 
-  /*
   // Add baffle
   int lx, ly, ux, uy;
-  lx = random_int_lr(0, H);
-  ux = random_int_lr(0, H);
+  lx = random_int_lr(0, H - 1);
+  ux = random_int_lr(0, H - 1);
   if (lx > ux)
     std::swap(lx, ux);
-  ly = random_int_lr(0, W);
-  uy = random_int_lr(0, W);
+  ly = random_int_lr(0, W - 1);
+  uy = random_int_lr(0, W - 1);
   if (ly > uy)
     std::swap(ly, uy);
   for (int i = lx; i <= ux; ++i) {
@@ -130,7 +129,6 @@ void getImg(int H, int W, double min_height, double max_height,
         mat_i[j * 3 + k] = 0;
     }
   }
-  */
 }
 
 } // namespace
@@ -164,12 +162,12 @@ int main(int argc, char **argv) {
   Mat *pResImg = new Mat(H, W, CV_8UC3, Scalar(0, 0, 0));
   vector<PhotonRecord> *photons = new vector<PhotonRecord>();
   for (int ca = 0; ca < N; ++ca) {
-    std::cerr << ca << std::endl;
+    std::cerr << "Img" << ca << std::endl;
     getImg(H, W, FLAGS_min_light_src_height, FLAGS_max_light_src_height,
       pImg, pResImg, photons);
-    char bmp_file[20];
-    sprintf(bmp_file, "raw_%d.bmp", ca);
-    imwrite((FLAGS_dst_dir + bmp_file).c_str(), *pResImg);
+    char bmp_file[100];
+    sprintf(bmp_file, "%sraw_%d.bmp", FLAGS_dst_dir.c_str(), ca);
+    imwrite(bmp_file, *pResImg);
     fprintf(fout, "%s\n", bmp_file);
     fprintf(fout, "%lu\n", photons->size());
     for (vector<PhotonRecord>::iterator i = photons->begin(); i != photons->end(); ++i) {
