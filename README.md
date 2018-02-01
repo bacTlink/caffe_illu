@@ -1,3 +1,8 @@
+# Illu raw data
+After compiling the project, run
+    ./tools/illu_gen_rawdata
+    ./tools/illu_to_lmdb
+
 # Caffe
 
 [![Build Status](https://travis-ci.org/BVLC/caffe.svg?branch=master)](https://travis-ci.org/BVLC/caffe)
