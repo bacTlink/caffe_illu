@@ -21,29 +21,17 @@
 #include "caffe/util/io.hpp"
 #include "caffe/util/rng.hpp"
 
+#include "illu/illu_raw_data.hpp"
+
 using namespace caffe;  // NOLINT(build/namespaces)
 using std::pair;
 using boost::scoped_ptr;
+using namespace illu;
 
 DEFINE_string(prefix, "", "The prefix of output");
-DEFINE_string(dst_dir, "./", "Destination directory");
+DEFINE_string(dst_dir, "data/illu/", "Destination directory");
+DEFINE_string(src_datafile, "data/illu/illu_raw_data.txt", "Source raw datafile");
 DEFINE_int32(photon_per_pixel, 100, "Remain photon count per pixel");
-
-struct Pos {
-  float x_, y_, z_;
-};
-
-struct RGB {
-  float b_, g_, r_;
-};
-
-struct PhotonRecord {
-  char reflection_;
-  char refraction_;
-  RGB rgb_;
-  float depth_;
-  Pos pos_;
-};
 
 vector<PhotonRecord> photons;
 vector<int> id;
@@ -80,13 +68,13 @@ int main(int argc, char** argv) {
   namespace gflags = google;
 #endif
 
-  gflags::SetUsageMessage("Convert ill raw data format to lmdb\n"
+  gflags::SetUsageMessage("Convert illu raw data format to lmdb\n"
         "format used as input for Caffe.\n"
         "Usage:\n"
-        "    illu_to_lmdb [FLAGS] ILLU_DATA_FILE\n");
+        "    illu_to_lmdb [FLAGS]\n");
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-  if (argc < 3) {
+  if (argc != 2) {
     gflags::ShowUsageWithFlagsRestrict(argv[0], "tools/illu_to_lmdb");
     return 1;
   }
@@ -113,7 +101,7 @@ int main(int argc, char** argv) {
   Datum datum;
   string out;
 
-  FILE* fin = fopen(argv[1], "r");
+  FILE* fin = fopen(FLAGS_src_datafile.c_str(), "r");
   CHECK_EQ(fscanf(fin, "%d", &N), 1);
   for (int bat = 0; bat < N; ++bat) {
     CHECK_EQ(fscanf(fin, "%s", filename), 1);
