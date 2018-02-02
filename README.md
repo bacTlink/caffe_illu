@@ -2,8 +2,8 @@
 After compiling the project, run
 
     mkdir data/illu
-    ./tools/illu_gen_rawdata
-    ./tools/illu_to_lmdb
+    ./build/tools/illu_gen_rawdata
+    ./build/tools/illu_to_lmdb
 
 # Caffe
 
