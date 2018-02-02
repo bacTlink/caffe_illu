@@ -5,7 +5,7 @@
 //
 // where raw_file is the data of illu defined in
 // illu/raw_data_format.
-//   ....
+//
 
 #include <cstdio>
 
@@ -36,8 +36,8 @@ DEFINE_int32(photon_per_pixel, 100, "Remain photon count per pixel");
 vector<PhotonRecord> photons;
 vector<int> id;
 
-inline float sqr(const float& x) { return x * x; }
-float squ_dis(const Pos& p1, const Pos& p2) {
+inline double sqr(const double& x) { return x * x; }
+double squ_dis(const Pos& p1, const Pos& p2) {
   return sqr(p1.x_ - p2.x_) + sqr(p1.y_ - p2.y_) + sqr(p1.z_ - p2.z_);
 }
 
@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
     PhotonRecord photon;
     for (int i = 0; i < P; ++i) {
       int tmp_refl, tmp_refr;
-      CHECK_EQ(fscanf(fin, "%f%f%f%f%f%f%d%d%f",
+      CHECK_EQ(fscanf(fin, "%lf%lf%lf%lf%lf%lf%d%d%lf",
             &photon.pos_.x_, &photon.pos_.y_, &photon.pos_.z_,
             &photon.rgb_.b_, &photon.rgb_.g_, &photon.rgb_.r_,
             &tmp_refl, &tmp_refr, &photon.depth_),
@@ -157,19 +157,19 @@ int main(int argc, char** argv) {
 
     RGB BRDF_color;
 		Pos pos;
-    float reflection, refraction;
-    float depth;
+    double reflection, refraction;
+    double depth;
     int M;
 		for (int i = 0; i < H; ++i)
 			for (int j = 0; j < W; ++j) {
         const int index = i * W + j;
-        CHECK_EQ(fscanf(fin, "%f%f%f",
+        CHECK_EQ(fscanf(fin, "%lf%lf%lf",
               &BRDF_color.b_, &BRDF_color.g_, &BRDF_color.r_), 3);
         BRDF_mat[0].set_float_data(index, BRDF_color.b_);
         BRDF_mat[1].set_float_data(index, BRDF_color.g_);
         BRDF_mat[2].set_float_data(index, BRDF_color.r_);
-				CHECK_EQ(fscanf(fin, "%f%f%f", &pos.x_, &pos.y_, &pos.z_), 3);
-        CHECK_EQ(fscanf(fin, "%f%f%f", &reflection, &refraction, &depth), 3);
+				CHECK_EQ(fscanf(fin, "%lf%lf%lf", &pos.x_, &pos.y_, &pos.z_), 3);
+        CHECK_EQ(fscanf(fin, "%lf%lf%lf", &reflection, &refraction, &depth), 3);
         rrd_mat.set_float_data(0 * H * W + index, reflection);
         rrd_mat.set_float_data(1 * H * W + index, refraction);
         rrd_mat.set_float_data(2 * H * W + index, depth);
