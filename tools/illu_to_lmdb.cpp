@@ -8,6 +8,7 @@
 //
 
 #include <cstdio>
+#include <cstdlib>
 
 #include "opencv2/opencv.hpp"
 
@@ -81,21 +82,16 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  scoped_ptr<db::DB> db_conv(db::GetDB("lmdb"));
-  db_conv->Open(FLAGS_dst_dir + FLAGS_prefix + "_conv", db::NEW);
-  scoped_ptr<db::Transaction> txn_conv(db_conv->NewTransaction());
+#define DEF_DB(db_name) \
+  CHECK_NE(system(("rm -rf " + FLAGS_dst_dir + FLAGS_prefix + "_" + #db_name).c_str()), -1); \
+  scoped_ptr<db::DB> db_##db_name(db::GetDB("lmdb")); \
+  db_##db_name->Open(FLAGS_dst_dir + FLAGS_prefix + "_" + #db_name, db::NEW); \
+  scoped_ptr<db::Transaction> txn_##db_name(db_##db_name->NewTransaction());
 
-  scoped_ptr<db::DB> db_BRDF(db::GetDB("lmdb"));
-  db_BRDF->Open(FLAGS_dst_dir + FLAGS_prefix + "_BRDF", db::NEW);
-  scoped_ptr<db::Transaction> txn_BRDF(db_BRDF->NewTransaction());
-
-  scoped_ptr<db::DB> db_rrd(db::GetDB("lmdb"));
-  db_rrd->Open(FLAGS_dst_dir + FLAGS_prefix + "_rrd", db::NEW);
-  scoped_ptr<db::Transaction> txn_rrd(db_rrd->NewTransaction());
-
-  scoped_ptr<db::DB> db_photon(db::GetDB("lmdb"));
-  db_photon->Open(FLAGS_dst_dir + FLAGS_prefix + "_photon", db::NEW);
-  scoped_ptr<db::Transaction> txn_photon(db_photon->NewTransaction());
+  DEF_DB(conv);
+  DEF_DB(BRDF);
+  DEF_DB(rrd);
+  DEF_DB(photon);
 
   int N, P, H, W;
   char filename[100];
