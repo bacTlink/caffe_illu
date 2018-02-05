@@ -20,10 +20,20 @@ void PhotonMappingLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   top[0]->Reshape(new_shape);
 }
 
+/*
+ * bottom:
+ *   0: photon squ dis data
+ *   1: photon flux data
+ */
 template <typename Dtype>
 void PhotonMappingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
-  const Dtype* bottom_data = bottom[0]->cpu_data();
+  const Dtype* squ_dis_data = bottom[0]->cpu_data();
+  const Dtype* flux_data = bottom[1]->cpu_data();
+  CHECK_EQ(bottom[0]->num_axes(), 4);
+  CHECK_EQ(bottom[1]->num_axes(), 4);
+  for (int i = 0; i < 4; ++i)
+    CHECK_EQ(bottom[0]->shape(i), bottom[1]->shape(i));
   Dtype* top_data = top[0]->mutable_cpu_data();
   const int num = bottom[0]->shape(0);
   const int photon_num = bottom[0]->shape(1) / 5;
@@ -37,8 +47,6 @@ void PhotonMappingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
         double flux = 0;
         const int index = i * W + j;
         for (int p = 0; p < photon_num; ++p) {
-          const Dtype* squ_dis_data = bottom_data + (p * 5) * H * W;
-          const Dtype* flux_data = bottom_data + (p * 5 + 1) * H * W;
           max_squ_dis = std::max(max_squ_dis,
               static_cast<double>(squ_dis_data[index]));
           flux += static_cast<double>(flux_data[index]);

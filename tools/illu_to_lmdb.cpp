@@ -91,11 +91,13 @@ int main(int argc, char** argv) {
   DEF_DB(conv);
   DEF_DB(BRDF);
   DEF_DB(rrd);
-  DEF_DB(photon);
+  DEF_DB(photon_dis);
+  DEF_DB(photon_flux);
+  DEF_DB(photon_rrd);
 
   int N, P, H, W;
   char filename[100];
-  Datum BRDF_mat[3], rrd_mat, photon_mat[3];
+  Datum BRDF_mat[3], rrd_mat, photon_dis_mat, photon_rrd_mat, photon_flux_mat[3];
   int preH = -1, preW = -1;
   Datum datum;
   string out;
@@ -103,8 +105,9 @@ int main(int argc, char** argv) {
   FILE* fin = fopen(FLAGS_src_datafile.c_str(), "r");
   CHECK_EQ(fscanf(fin, "%d", &N), 1);
   for (int bat = 0; bat < N; ++bat) {
-    LOG(INFO) << "bat: " << bat;
+    LOG(INFO) << "Image: " << bat;
 
+    // Converge Result
     CHECK_EQ(fscanf(fin, "%s", filename), 1);
     cv::Mat conv = cv::imread(filename);
     CHECK(conv.data);
@@ -116,7 +119,6 @@ int main(int argc, char** argv) {
       CHECK(datum.SerializeToString(&out));
       txn_conv->Put(filename, out);
     }
-    LOG(INFO) << "    converge result: done";
 
     CHECK_EQ(fscanf(fin, "%d", &P), 1);
     photons.clear();
@@ -141,14 +143,16 @@ int main(int argc, char** argv) {
       CHECK_EQ(H, preH);
       CHECK_EQ(W, preW);
     } else {
+      // Init matrices
       preH = H;
       preW = W;
       init_datum(&rrd_mat, 3, H, W);
+      init_datum(&photon_rrd_mat, 3 * FLAGS_photon_per_pixel, H, W);
+      init_datum(&photon_dis_mat, FLAGS_photon_per_pixel, H, W);
       for (int i = 0; i < 3; ++i) {
         init_datum(BRDF_mat + i, 1, H, W);
-        init_datum(photon_mat + i, 5 * FLAGS_photon_per_pixel, H, W);
+        init_datum(photon_flux_mat + i, FLAGS_photon_per_pixel, H, W);
       }
-      LOG(INFO) << "Matrix init: done";
     }
 
     RGB BRDF_color;
@@ -184,32 +188,35 @@ int main(int argc, char** argv) {
           photons.push_back(tmp_photon);
 				sort(id.begin(), id.end(), Comparator(pos));
         for (int p = 0; p < FLAGS_photon_per_pixel; ++p) {
-          for (int c = 0; c < 3; ++c) {
-            photon_mat[c].set_float_data((p * 5 + 0) * H * W + index, squ_dis(pos, photons[p].pos_));
-            photon_mat[c].set_float_data((p * 5 + 2) * H * W + index, photons[p].reflection_);
-            photon_mat[c].set_float_data((p * 5 + 3) * H * W + index, photons[p].refraction_);
-            photon_mat[c].set_float_data((p * 5 + 4) * H * W + index, photons[p].depth_);
-          }
-          photon_mat[0].set_float_data((p * 5 + 1) * H * W + index, photons[p].rgb_.b_);
-          photon_mat[1].set_float_data((p * 5 + 1) * H * W + index, photons[p].rgb_.g_);
-          photon_mat[2].set_float_data((p * 5 + 1) * H * W + index, photons[p].rgb_.r_);
+          photon_dis_mat.set_float_data(index, squ_dis(pos, photons[p].pos_));
+          photon_rrd_mat.set_float_data((p * 3 + 0) * H * W + index, photons[p].reflection_);
+          photon_rrd_mat.set_float_data((p * 3 + 1) * H * W + index, photons[p].refraction_);
+          photon_rrd_mat.set_float_data((p * 3 + 2) * H * W + index, photons[p].depth_);
+          photon_flux_mat[0].set_float_data(index, photons[p].rgb_.b_);
+          photon_flux_mat[1].set_float_data(index, photons[p].rgb_.g_);
+          photon_flux_mat[2].set_float_data(index, photons[p].rgb_.r_);
         }
 			}
     for (int c = 0; c < 3; ++c) {
       CHECK(BRDF_mat[c].SerializeToString(&out));
       txn_BRDF->Put(filename, out);
     }
-    LOG(INFO) << "    BRDF: done";
     CHECK(rrd_mat.SerializeToString(&out));
     for (int c = 0; c < 3; ++c) {
       txn_rrd->Put(filename, out);
     }
-    LOG(INFO) << "    RRD: done";
+    CHECK(photon_dis_mat.SerializeToString(&out));
     for (int c = 0; c < 3; ++c) {
-      CHECK(photon_mat[c].SerializeToString(&out));
-      txn_photon->Put(filename, out);
+      txn_photon_dis->Put(filename, out);
     }
-    LOG(INFO) << "    photon map: done";
+    CHECK(photon_rrd_mat.SerializeToString(&out));
+    for (int c = 0; c < 3; ++c) {
+      txn_photon_rrd->Put(filename, out);
+    }
+    for (int c = 0; c < 3; ++c) {
+      CHECK(photon_flux_mat[c].SerializeToString(&out));
+      txn_photon_flux->Put(filename, out);
+    }
   }
 
   fclose(fin);
