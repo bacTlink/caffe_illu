@@ -219,6 +219,13 @@ int main(int argc, char** argv) {
     }
   }
 
+  txn_conv->Commit();
+  txn_BRDF->Commit();
+  txn_rrd->Commit();
+  txn_photon_dis->Commit();
+  txn_photon_rrd->Commit();
+  txn_photon_flux->Commit();
+
   fclose(fin);
 
 #else
