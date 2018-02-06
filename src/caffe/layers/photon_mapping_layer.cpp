@@ -52,6 +52,7 @@ void PhotonMappingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
           flux += static_cast<double>(flux_data[index]);
         }
         top_data[index] = max_squ_dis > 1e-6 ? flux / max_squ_dis : 0;
+        top_data[index] = std::min(top_data[index], static_cast<Dtype>(1.0));
       }
   }
 }
