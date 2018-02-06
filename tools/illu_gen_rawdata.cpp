@@ -5,7 +5,10 @@
 #include "boost/random.hpp"
 #include "gflags/gflags.h"
 #include "glog/logging.h"
+
+#ifdef USE_OPENCV
 #include "opencv2/opencv.hpp"
+#endif  // USE_OPENCV
 
 #include "illu/illu_raw_data.hpp"
 

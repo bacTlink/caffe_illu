@@ -10,7 +10,9 @@
 #include <cstdio>
 #include <cstdlib>
 
+#ifdef USE_OPENCV
 #include "opencv2/opencv.hpp"
+#endif  // USE_OPENCV
 
 #include "boost/scoped_ptr.hpp"
 #include "gflags/gflags.h"
