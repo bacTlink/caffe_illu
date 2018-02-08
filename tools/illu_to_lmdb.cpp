@@ -104,6 +104,7 @@ int main(int argc, char** argv) {
   Datum datum;
   string out;
 
+  int commit_cyc = 1;
   FILE* fin = fopen(FLAGS_src_datafile.c_str(), "r");
   CHECK_EQ(fscanf(fin, "%d", &N), 1);
   for (int bat = 0; bat < N; ++bat) {
@@ -155,6 +156,7 @@ int main(int argc, char** argv) {
         init_datum(BRDF_mat + i, 1, H, W);
         init_datum(photon_flux_mat + i, FLAGS_photon_per_pixel, H, W);
       }
+      commit_cyc = (100000 - 1) / (H * W) + 1;
     }
 
     RGB BRDF_color;
@@ -219,14 +221,24 @@ int main(int argc, char** argv) {
       CHECK(photon_flux_mat[c].SerializeToString(&out));
       txn_photon_flux->Put(filename, out);
     }
+    if ((bat + 1) % commit_cyc == 0) {
+      txn_conv->Commit();
+      txn_BRDF->Commit();
+      txn_rrd->Commit();
+      txn_photon_dis->Commit();
+      txn_photon_rrd->Commit();
+      txn_photon_flux->Commit();
+    }
   }
 
-  txn_conv->Commit();
-  txn_BRDF->Commit();
-  txn_rrd->Commit();
-  txn_photon_dis->Commit();
-  txn_photon_rrd->Commit();
-  txn_photon_flux->Commit();
+  if (N % commit_cyc != 0) {
+    txn_conv->Commit();
+    txn_BRDF->Commit();
+    txn_rrd->Commit();
+    txn_photon_dis->Commit();
+    txn_photon_rrd->Commit();
+    txn_photon_flux->Commit();
+  }
 
   fclose(fin);
 
