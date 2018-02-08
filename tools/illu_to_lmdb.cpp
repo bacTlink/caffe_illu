@@ -32,8 +32,8 @@ using boost::scoped_ptr;
 using namespace illu;
 
 DEFINE_string(prefix, "raw_data", "The prefix of output");
-DEFINE_string(dst_dir, "data/illu/", "Destination directory");
-DEFINE_string(src_datafile, "data/illu/illu_raw_data.txt", "Source raw datafile");
+DEFINE_string(dst_dir, "/data3/lzh/illu/", "Destination directory");
+DEFINE_string(src_datafile, "/data3/lzh/illu/illu_raw_data.txt", "Source raw datafile");
 DEFINE_int32(photon_per_pixel, 100, "Remain photon count per pixel");
 
 vector<PhotonRecord> photons;
