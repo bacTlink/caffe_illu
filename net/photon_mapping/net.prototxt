@@ -1,0 +1,63 @@
+name: "TestNet"
+layer {
+  name: "illu_dis"
+##  type: "Input"
+  type: "Data"
+  data_param {
+    source: "/data3/lzh/illu/raw_data_photon_dis"
+    batch_size: 16
+    backend: LMDB
+  }
+  top: "data_dis"
+}
+layer {
+  name: "illu_flux"
+  type: "Data"
+  data_param {
+    source: "/data3/lzh/illu/raw_data_photon_flux"
+    batch_size: 16
+    backend: LMDB
+  }
+  top: "data_flux"
+}
+#layer {
+  #name: "illu_rrd"
+  #type: "Data"
+  #data_param {
+    #source: "/data3/lzh/illu/raw_data_photon_rrd"
+    #batch_size: 16
+    #backend: LMDB
+  #}
+  #top: "data_rrd"
+#}
+
+layer{
+  name: "illu_conv"
+  type: "Data"
+  data_param {
+    source: "/data3/lzh/illu/raw_data_conv"
+    batch_size: 16
+    backend: LMDB
+  }
+  transform_param {
+    scale: 0.00390625
+  }
+  top: "data_conv"
+}
+
+layer {
+  name: "try"
+  type: "PhotonMapping"
+  bottom: "data_dis"
+  bottom: "data_flux"
+  top: "photon_mapping"
+}
+
+layer {
+  name: "loss"
+  type: "EuclideanLoss"
+  bottom: "photon_mapping"
+  bottom: "data_conv"
+  propagate_down: 0
+  propagate_down: 0
+}
