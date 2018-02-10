@@ -84,7 +84,6 @@ void getImg(int H, int W, double min_height, double max_height,
   const int photon_iters = 2;
   double flux_per_photon = get_sphere_rectangle_area(h_degree, w_degree, 1.0)
                             / (photon_iters * H * W);
-  LOG(INFO) << flux_per_photon;
   for (int t = 0; t < photon_iters; ++t) {
     for (int i = 0; i < H; ++i) {
       for (int j = 0; j < W; ++j) {
