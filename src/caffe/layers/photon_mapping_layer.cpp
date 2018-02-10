@@ -45,13 +45,13 @@ void PhotonMappingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       for (int j = 0; j < W; ++j) {
         double max_squ_dis = 0;
         double flux = 0;
-        const int index = i * W + j;
+        const int index = (n * H + i) * W + j;
         for (int p = 0; p < photon_num; ++p) {
           max_squ_dis = std::max(max_squ_dis,
               static_cast<double>(squ_dis_data[index]));
           flux += static_cast<double>(flux_data[index]);
         }
-        top_data[index] = max_squ_dis > 1e-6 ? flux / max_squ_dis : 0;
+        top_data[index] = max_squ_dis > 1e-100 ? flux / max_squ_dis : 0;
         top_data[index] = std::min(top_data[index], static_cast<Dtype>(1.0));
       }
   }

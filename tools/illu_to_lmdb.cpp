@@ -28,13 +28,15 @@
 
 using namespace caffe;  // NOLINT(build/namespaces)
 using std::pair;
+using std::cerr;
+using std::endl;
 using boost::scoped_ptr;
 using namespace illu;
 
 DEFINE_string(prefix, "raw_data", "The prefix of output");
 DEFINE_string(dst_dir, "/data3/lzh/illu/", "Destination directory");
 DEFINE_string(src_datafile, "/data3/lzh/illu/illu_raw_data.txt", "Source raw datafile");
-DEFINE_int32(photon_per_pixel, 100, "Remain photon count per pixel");
+DEFINE_int32(photon_per_pixel, 20, "Remain photon count per pixel");
 
 vector<PhotonRecord> photons;
 vector<int> id;
@@ -188,17 +190,20 @@ int main(int argc, char** argv) {
         tmp_photon.reflection_ = tmp_photon.refraction_ = tmp_photon.depth_ = 0;
         tmp_photon.rgb_.b_ = tmp_photon.rgb_.g_ = tmp_photon.rgb_.r_ = 0;
         tmp_photon.pos_ = pos;
-        for (int p = M; p < FLAGS_photon_per_pixel; ++p)
-          photons.push_back(tmp_photon);
 				sort(id.begin(), id.end(), Comparator(pos));
-        for (int p = 0; p < FLAGS_photon_per_pixel; ++p) {
-          photon_dis_mat.set_float_data(index, squ_dis(pos, photons[p].pos_));
-          photon_rrd_mat.set_float_data((p * 3 + 0) * H * W + index, photons[p].reflection_);
-          photon_rrd_mat.set_float_data((p * 3 + 1) * H * W + index, photons[p].refraction_);
-          photon_rrd_mat.set_float_data((p * 3 + 2) * H * W + index, photons[p].depth_);
-          photon_flux_mat[0].set_float_data(index, photons[p].rgb_.b_);
-          photon_flux_mat[1].set_float_data(index, photons[p].rgb_.g_);
-          photon_flux_mat[2].set_float_data(index, photons[p].rgb_.r_);
+        double max_dis = 0;
+        double flux = 0;
+        for (int pi = 0; pi < FLAGS_photon_per_pixel; ++pi) {
+          const PhotonRecord& photon = pi < id.size() ? photons[id[pi]] : tmp_photon;
+          photon_dis_mat.set_float_data(index, squ_dis(pos, photon.pos_));
+          max_dis = std::max(max_dis, squ_dis(pos, photon.pos_));
+          flux += photon.rgb_.b_;
+          photon_rrd_mat.set_float_data((pi * 3 + 0) * H * W + index, photon.reflection_);
+          photon_rrd_mat.set_float_data((pi * 3 + 1) * H * W + index, photon.refraction_);
+          photon_rrd_mat.set_float_data((pi * 3 + 2) * H * W + index, photon.depth_);
+          photon_flux_mat[0].set_float_data(index, photon.rgb_.b_);
+          photon_flux_mat[1].set_float_data(index, photon.rgb_.g_);
+          photon_flux_mat[2].set_float_data(index, photon.rgb_.r_);
         }
 			}
     for (int c = 0; c < 3; ++c) {
