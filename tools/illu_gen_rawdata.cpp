@@ -19,8 +19,8 @@ using std::endl;
 using namespace cv;
 
 DEFINE_int32(N, 10, "Number of cases");
-DEFINE_int32(height, 100, "Height of image");
-DEFINE_int32(width, 100, "Width of image");
+DEFINE_int32(height, 224, "Height of image");
+DEFINE_int32(width, 224, "Width of image");
 DEFINE_double(min_light_src_height, 1.0, "Lower bound of height of light source");
 DEFINE_double(max_light_src_height, 50.0, "Upper bound of height of light source");
 DEFINE_string(dst_datafile, "illu_raw_data.txt", "Destination datafile");
