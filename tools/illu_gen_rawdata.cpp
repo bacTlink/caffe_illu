@@ -83,6 +83,7 @@ void getImg(int H, int W, double min_height, double max_height,
   double w_degree = atan2(W * 0.5, height);
   const int photon_iters = 2;
   double flux_per_photon = get_sphere_rectangle_area(h_degree, w_degree, 1.0)
+                            * sqr(height)
                             / (photon_iters * H * W);
   for (int t = 0; t < photon_iters; ++t) {
     for (int i = 0; i < H; ++i) {
@@ -105,12 +106,6 @@ void getImg(int H, int W, double min_height, double max_height,
 						if (0 <= dx + x && dx + x < W
 								&& 0 <= dy + y && dy + y < H) {
               pImg[(dx + x) * W + dy + y].photons.push_back(num);
-              /*
-              Pos tmp = pImg[(dx+x)*W+dy+y].pos_;
-              cerr << sqr(tmp.x_ - photon.pos_.x_)
-                + sqr(tmp.y_ - photon.pos_.y_)
-                + sqr(tmp.z_ - photon.pos_.z_) << endl;
-                */
             }
 				photons->push_back(photon);
       }
