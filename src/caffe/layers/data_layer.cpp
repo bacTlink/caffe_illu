@@ -70,8 +70,8 @@ template<typename Dtype>
 void DataLayer<Dtype>::Next() {
   cursor_->Next();
   if (!cursor_->valid()) {
-    LOG_IF(INFO, Caffe::root_solver())
-        << "Restarting data prefetching from start.";
+   // LOG_IF(INFO, Caffe::root_solver())
+   //     << "Restarting data prefetching from start.";
     cursor_->SeekToFirst();
   }
   offset_++;
