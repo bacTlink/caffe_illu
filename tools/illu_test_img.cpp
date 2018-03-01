@@ -15,7 +15,7 @@ using std::string;
 
 DEFINE_string(model_file, "net.prototxt", "Model file");
 DEFINE_string(trained_file, "converge.caffemodel", "Trained file");
-DEFINE_string(data_dir, "data/illu/", "Data directory");
+DEFINE_string(data_dir, "/data3/lzh/illu/", "Data directory");
 DEFINE_string(data_prefix, "raw_data", "Data file prefix");
 DEFINE_string(dst_dir, "data/illu/", "Output image directory");
 
@@ -54,8 +54,7 @@ Projector::Projector(const string& model_file,
   net_.reset(new Net<float>(model_file, TEST));
   net_->CopyTrainedLayersFrom(trained_file);
 
-  CHECK_EQ(net_->num_inputs(), 3) << "Network should have exactly four input.";
-  CHECK_EQ(net_->num_outputs(), 1) << "Network should have exactly one output.";
+  CHECK_EQ(net_->num_inputs(), 3) << "Network should have exactly three inputs.";
 
   count_ = 0;
 }
@@ -106,12 +105,15 @@ void Projector::Project(const string& lmdb_photon_dis,
     }
     net_->Forward();
 
-    Blob<float>* output_layer = net_->output_blobs()[0];
+    Blob<float>* output_layer = net_->output_blobs()[net_->num_outputs() - 1];
     CHECK_EQ(output_layer->shape(1), 1);
     CHECK_EQ(output_layer->shape(2), H);
     CHECK_EQ(output_layer->shape(3), W);
     const float* output_data = output_layer->cpu_data();
+    LOG(INFO) << output_data[(H / 2) * W + W / 2];
     vector<float> vec(output_data, output_data + H * W);
+    for (int i = 0; i < vec.size(); ++i)
+      vec[i] *= 255;
     cv::Mat img(H, W, CV_32FC1, &vec.front());
     std::stringstream filename;
     filename << FLAGS_dst_dir << FLAGS_data_prefix << "_test_" << count_ << ".bmp";

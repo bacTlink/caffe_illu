@@ -19,8 +19,8 @@ using std::endl;
 using namespace cv;
 
 DEFINE_int32(N, 10, "Number of cases");
-DEFINE_int32(height, 100, "Height of image");
-DEFINE_int32(width, 100, "Width of image");
+DEFINE_int32(height, 224, "Height of image");
+DEFINE_int32(width, 224, "Width of image");
 DEFINE_double(min_light_src_height, 1.0, "Lower bound of height of light source");
 DEFINE_double(max_light_src_height, 50.0, "Upper bound of height of light source");
 DEFINE_string(dst_datafile, "illu_raw_data.txt", "Destination datafile");
@@ -46,14 +46,21 @@ double random_degree(int i, double h_degree, int H) {
 	return (i * 2 * h_degree / H) - h_degree + random_real_lr(0, 2 * h_degree / H);
 }
 
-double get_pos(double degree, double height, int H) {
-	return tan(degree) * height + H * 0.5;
+double get_pos(double degree, double height) {
+	return tan(degree) * height;
+}
+
+double get_sphere_rectangle_area(double alpha, double beta, double radius) {
+  double gamma = acos(cos(alpha) * cos(beta));
+  double A = atan2(sin(beta), tan(alpha));
+  double B = atan2(sin(alpha), tan(beta));
+  double C = acos(sin(A) * sin(B) * cos(gamma) - cos(A) * cos(B));
+  return (4 * C - 2 * M_PI) * sqr(radius);
 }
 
 void getImg(int H, int W, double min_height, double max_height,
     PixelRecord* pImg, Mat *pResImg, vector<PhotonRecord> *photons) {
   // Init 
-  photons->clear();
 	for (int i = 0; i < H; ++i) {
 		for (int j = 0; j < W; ++j) {
 			const int index = i * W + j;
@@ -70,30 +77,36 @@ void getImg(int H, int W, double min_height, double max_height,
 	}
 
   // Emit photons
+  photons->clear();
   double height = random_real_lr(min_height, max_height);
   double h_degree = atan2(H * 0.5, height);
   double w_degree = atan2(W * 0.5, height);
-  for (int t = 0; t < 2; ++t) {
+  const int photon_iters = 2;
+  double flux_per_photon = get_sphere_rectangle_area(h_degree, w_degree, 1.0)
+                            * sqr(height)
+                            / (photon_iters * H * W);
+  for (int t = 0; t < photon_iters; ++t) {
     for (int i = 0; i < H; ++i) {
       for (int j = 0; j < W; ++j) {
         PhotonRecord photon;
 				double i_degree = random_degree(i, h_degree, H);
 				double j_degree = random_degree(j, w_degree, W);
-				double i_pos = get_pos(i_degree, height, H);
-				double j_pos = get_pos(j_degree, height, W);
+				double i_pos = get_pos(i_degree, height);
+				double j_pos = get_pos(j_degree, height);
 				photon.pos_.x_ = i_pos;
 				photon.pos_.y_ = j_pos;
 				photon.pos_.z_ = 0;
-				photon.rgb_.b_ = photon.rgb_.g_ = photon.rgb_.r_ = (2.0 * 2.0 * h_degree * w_degree) / (2.0 * H * W);
+				photon.rgb_.b_ = photon.rgb_.g_ = photon.rgb_.r_ = flux_per_photon;
 				photon.reflection_ = photon.refraction_ = 0;
 				photon.depth_ = sqrt(sqr(height) + sqr(i_pos) + sqr(j_pos));
 				int num = photons->size();
-				int x = round(i_pos), y = round(j_pos);
+				int x = round(i_pos + H * 0.5), y = round(j_pos + W * 0.5);
 				for (int dx = -4; dx <= 4; ++dx)
 					for (int dy = -4; dy <= 4; ++dy)
 						if (0 <= dx + x && dx + x < W
-								&& 0 <= dy + y && dy + y < H)
-						pImg[(dx + x) * W + dy + y].photons.push_back(num);
+								&& 0 <= dy + y && dy + y < H) {
+              pImg[(dx + x) * W + dy + y].photons.push_back(num);
+            }
 				photons->push_back(photon);
       }
     }
@@ -106,8 +119,7 @@ void getImg(int H, int W, double min_height, double max_height,
       double x = fabs(i - H * 0.5);
       double y = fabs(j - W * 0.5);
       double col = 255;
-      col *= sqr(height) / ((sqr(x) + sqr(height)));
-      col *= sqr(height) / ((sqr(y) + sqr(height)));
+      col *= pow(1 + (sqr(x) + sqr(y)) / sqr(height), -1.5);
       for (int k = 0; k < 3; ++k)
         mat_i[j * 3 + k] = (uchar)col;
     }
@@ -185,8 +197,8 @@ int main(int argc, char **argv) {
         const int index = i * W + j;
         PixelRecord &pr = pImg[index];
         fprintf(fout, "%.6f %.6f %.6f %.6f %.6f %.6f %d %d %.6f ",
-            pr.pos_.x_, pr.pos_.y_, pr.pos_.z_,
             pr.BRDF_.b_, pr.BRDF_.g_, pr.BRDF_.r_,
+            pr.pos_.x_, pr.pos_.y_, pr.pos_.z_,
             pr.reflection_, pr.refraction_, pr.depth_);
         fprintf(fout, "%lu", pr.photons.size());
         for (vector<int>::iterator x = pr.photons.begin(); x != pr.photons.end(); ++x)
