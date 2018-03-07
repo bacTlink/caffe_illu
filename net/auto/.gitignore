@@ -1,0 +1,8 @@
+*.jpg
+
+log
+
+snapshots
+
+train_resnet_auto.prototxt
+test_resnet_auto.prototxt
