@@ -10,16 +10,18 @@
 
 import os, sys
 import argparse
-
-caffe_path = "/home/gaoyu/caffe_illu/python/"
-sys.path.append(caffe_path)
-
-import numpy as np
-import caffe
 import lmdb
 
 import cv2
 
+THIS_DIR = os.path.realpath(os.path.dirname(__file__))
+PROJECT_DIR = os.path.join(THIS_DIR, "..")
+os.chdir(os.path.join(THIS_DIR, ".."))
+sys.path.append(PROJECT_DIR)
+from util import find_caffe
+import caffe
+
+import numpy as np
 def GetOneFromLMDB(lmdb_path, index = 1):
     lmdb_env = lmdb.open(lmdb_path, readonly = True)
     with lmdb_env.begin() as lmdb_txn:
@@ -57,22 +59,25 @@ def GetNet(net, weights, gpu):
 
 def GetOnePic(net, index, use_train = False):
     if use_train:
-        prefix = "/data3/lzh/1000x224x224/"
+        print "Use Train Data"
+        prefix = "/data3/lzh/1000x224x224"
     else:
-        prefix = "/data3/lzh/100x224x224/"
+        print "Use Test Data"
+        prefix = "/data3/lzh/100x224x224"
+    prefix = prefix + args.suffix
     dis_data = GetOneFromLMDB( \
-        prefix + "raw_data_photon_dis/", index)
+        prefix + "/raw_data_photon_dis/", index)
     flux_data = GetOneFromLMDB( \
-        prefix + "raw_data_photon_flux/", index)
+        prefix + "/raw_data_photon_flux/", index)
     label = GetOneFromLMDB( \
-        prefix + "raw_data_conv/", index)
+        prefix + "/raw_data_conv/", index)
 
     net.blobs['Data1'].data[...] = dis_data *  0.01
     net.blobs['Data3'].data[...] = flux_data
 
     net.forward()
 
-    output = net.blobs['Convolution22'].data[0]
+    output = net.blobs[args.blob].data[0]
     print output * 256
     print label
     output = np.maximum(0, output)
@@ -81,29 +86,34 @@ def GetOnePic(net, index, use_train = False):
     pic = (output * 256).copy()
     pic = pic.astype(np.uint8)
     pic = np.transpose(pic, (1, 2, 0))
-    cv2.imwrite("test" + str(index) + ".jpg", pic)
+    cv2.imwrite("pic/test" + str(index) + ".jpg", pic)
     pic2 = np.zeros(label.shape, np.uint8)
     pic2 = label.copy()
     pic2 = np.transpose(pic2, (1, 2, 0))
-    cv2.imwrite("train" + str(index) + ".jpg", pic2)
+    cv2.imwrite("pic/train" + str(index) + ".jpg", pic2)
     loss = 0
     for i in range(224):
         for j in range(224):
             v = float(int(pic[i][j][0]) - int(pic2[i][j][0])) * (1.0 / 256.0)
             loss += v * v
     print loss
+    print "MSE:", loss / 224 / 224 * 256 * 256
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--gpu", type = int, default = 0)
-    p.add_argument("--net", default = "/home/gaoyu/illu_train/test_resnet_auto.prototxt")
+    p.add_argument("--net", default = "../test_resnet_auto.prototxt")
     p.add_argument("--train", action = "store_true", default = False)
+    p.add_argument("--blob", default = "Convolution22")
+    p.add_argument("--suffix", default = "_largeview", help = "data_dir suffix, such as <_largeview>")
     p.add_argument("model")
 
     args = p.parse_args()
     net = GetNet(args.net,
                  args.model,
                  gpu = args.gpu)
+    if not os.path.isdir("./pic/"):
+        os.mkdir("./pic/")
     for i in range(10):
         print "INDEX: ", i
         print "------------------------------------"

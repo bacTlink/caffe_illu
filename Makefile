@@ -445,6 +445,9 @@ ifneq ($(MATLAB_DIR),)
 	EVERYTHING_TARGETS += mat$(PROJECT)
 endif
 
+#Support C++11
+CXXFLAGS += -std=c++11
+
 ##############################
 # Define build targets
 ##############################
