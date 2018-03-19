@@ -36,6 +36,7 @@ using namespace illu;
 DEFINE_string(prefix, "raw_data", "The prefix of output");
 DEFINE_string(dst_dir, "/data3/lzh/illu/", "Destination directory");
 DEFINE_string(src_datafile, "/data3/lzh/illu/illu_raw_data.txt", "Source raw datafile");
+DEFINE_string(src_filelist, "", "Source raw datafile lists");
 DEFINE_int32(photon_per_pixel, 20, "Remain photon count per pixel");
 
 vector<PhotonRecord> photons;
@@ -107,9 +108,23 @@ int main(int argc, char** argv) {
   string out;
 
   int commit_cyc = 1;
-  FILE* fin = fopen(FLAGS_src_datafile.c_str(), "r");
-  CHECK_EQ(fscanf(fin, "%d", &N), 1);
+  FILE* fin;
+  FILE* filelist_in;
+  if (FLAGS_src_filelist.empty()) {
+    fin = fopen(FLAGS_src_datafile.c_str(), "r");
+    CHECK_EQ(fscanf(fin, "%d", &N), 1);
+  } else {
+    N = 1 << 30;
+    filelist_in = fopen(FLAGS_src_datafile.c_str(), "r");
+  }
   for (int bat = 0; bat < N; ++bat) {
+    if (!FLAGS_src_filelist.empty()) {
+      char single_file[256];
+      if (fscanf(filelist_in, "%s", single_file) != 1) {
+        break;
+      }
+      fin = fopen(single_file, "r");
+    }
     LOG(INFO) << "Image: " << bat;
 
     // Converge Result
@@ -232,6 +247,9 @@ int main(int argc, char** argv) {
       txn_photon_rrd->Commit();
       txn_photon_flux->Commit();
     }
+    if (!FLAGS_src_filelist.empty()) {
+      fclose(fin);
+    }
   }
 
   if (N % commit_cyc != 0) {
@@ -243,7 +261,9 @@ int main(int argc, char** argv) {
     txn_photon_flux->Commit();
   }
 
-  fclose(fin);
+  if (!FLAGS_src_filelist.empty()) {
+    fclose(fin);
+  }
 
 #else
   LOG(FATAL) << "This tool requires OpenCV; compile with USE_OPENCV.";
