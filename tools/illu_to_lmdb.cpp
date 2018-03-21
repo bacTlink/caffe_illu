@@ -37,6 +37,7 @@ DEFINE_string(prefix, "raw_data", "The prefix of output");
 DEFINE_string(dst_dir, "/data3/lzh/illu/", "Destination directory");
 DEFINE_string(src_datafile, "/data3/lzh/illu/illu_raw_data.txt", "Source raw datafile");
 DEFINE_string(src_filelist, "", "Source raw datafile lists");
+DEFINE_string(src_dir, "", "Directory to the raw datafiles in the list");
 DEFINE_int32(photon_per_pixel, 20, "Remain photon count per pixel");
 
 vector<PhotonRecord> photons;
@@ -112,10 +113,12 @@ int main(int argc, char** argv) {
   FILE* filelist_in;
   if (FLAGS_src_filelist.empty()) {
     fin = fopen(FLAGS_src_datafile.c_str(), "r");
+    CHECK(fin);
     CHECK_EQ(fscanf(fin, "%d", &N), 1);
   } else {
     N = 1 << 30;
-    filelist_in = fopen(FLAGS_src_datafile.c_str(), "r");
+    filelist_in = fopen(FLAGS_src_filelist.c_str(), "r");
+    CHECK(filelist_in);
   }
   for (int bat = 0; bat < N; ++bat) {
     if (!FLAGS_src_filelist.empty()) {
@@ -123,7 +126,9 @@ int main(int argc, char** argv) {
       if (fscanf(filelist_in, "%s", single_file) != 1) {
         break;
       }
-      fin = fopen(single_file, "r");
+      LOG(INFO) << single_file;
+      fin = fopen((FLAGS_src_dir + single_file).c_str(), "r");
+      CHECK(fin);
     }
     LOG(INFO) << "Image: " << bat;
 
