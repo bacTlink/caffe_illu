@@ -266,7 +266,7 @@ int main(int argc, char** argv) {
     txn_photon_flux->Commit();
   }
 
-  if (!FLAGS_src_filelist.empty()) {
+  if (FLAGS_src_filelist.empty()) {
     fclose(fin);
   }
 
