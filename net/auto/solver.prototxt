@@ -22,6 +22,6 @@ display: 25
 max_iter: 500000
 # snapshot intermediate results
 snapshot: 500
-snapshot_prefix: "./snapshots/v9/v9"
+snapshot_prefix: "./snapshots/ring_v1/ring_v1"
 # solver mode: CPU or GPU
 solver_mode: GPU

@@ -19,7 +19,7 @@ cd ./scripts/
 python ./build_resnet.py --output $THIS_DIR \
                          --stage_link \
                          --batch 20 \
-                         --prefix /data3/lzh/1000x224x224_largeview/ 
+                         --prefix /data3/lzh/1000x224x224_ring_images/
 
 cd $THIS_DIR
 ./train.sh $@
