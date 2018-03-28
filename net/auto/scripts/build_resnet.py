@@ -49,6 +49,7 @@ def build_Train_Data(net, prefix, batch_size, mode = "FLUX_DIS"):
     elif mode == "PICS":
         pic_data_file = prefix + "/data"
         pic_scale = 0.00390625
+        pic_scale = 1.0
 
         data, pic_name = \
             L.Data(source = pic_data_file,
@@ -67,6 +68,7 @@ def build_Train_Data(net, prefix, batch_size, mode = "FLUX_DIS"):
         print "Unknown type"
 
     label_scale = 0.00390625
+    label_scale = 1.0
 
     label, label_name = \
         L.Data(source = label_file,
