@@ -14,34 +14,59 @@ from util import find_caffe
 import caffe
 from caffe import layers as L, params as P
 
-def build_Data(net, split, prefix, batch_size):
+def build_Data(net, split, prefix, batch_size, mode = "FLUX_DIS"):
     if split == "train":
-        return build_Train_Data(net, prefix, batch_size)
+        return build_Train_Data(net, prefix, batch_size, mode)
     elif split == "test":
-        return build_Test_Data(net)
+        if mode == "FLUX_DIS":
+            return build_Test_Data(net)
+        elif mode == "PICS":
+            return build_Test_Data_Pic(net)
+        else:
+            print "Unknown type"
 
-def build_Train_Data(net, prefix, batch_size):
-    dis_data_file = prefix + "/raw_data_photon_dis"
-    flux_data_file = prefix + "/raw_data_photon_flux"
-    dis_scale = 0.01000000
-    flux_scale = 1.0
+def build_Train_Data(net, prefix, batch_size, mode = "FLUX_DIS"):
+    if mode == "FLUX_DIS":
+        dis_data_file = prefix + "/raw_data_photon_dis"
+        flux_data_file = prefix + "/raw_data_photon_flux"
+        dis_scale = 0.01000000
+        flux_scale = 1.0
 
-    label_file = prefix + "/raw_data_conv"
+        dis_data, dis_name = \
+            L.Data(source = dis_data_file,
+                   backend = P.Data.LMDB,
+                   batch_size = batch_size,
+                   ntop = 2,
+                   transform_param = dict(scale = dis_scale))
+
+        flux_data, flux_name = \
+            L.Data(source = flux_data_file,
+                   backend = P.Data.LMDB,
+                   batch_size = batch_size,
+                   ntop = 2,
+                   transform_param = dict(scale = flux_scale))
+        data = L.Concat(dis_data, flux_data, ntop = 1)
+    elif mode == "PICS":
+        pic_data_file = prefix + "/data"
+        pic_scale = 0.00390625
+
+        data, pic_name = \
+            L.Data(source = pic_data_file,
+                   backend = P.Data.LMDB,
+                   batch_size = batch_size,
+                   ntop = 2,
+                   transform_param = dict(scale = pic_scale))
+    else:
+        print "Unknown type"
+
+    if mode == "FLUX_DIS":
+        label_file = prefix + "/raw_data_conv"
+    elif mode == "PICS":
+        label_file  = prefix + "/label"
+    else:
+        print "Unknown type"
+
     label_scale = 0.00390625
-
-    dis_data, dis_name = \
-        L.Data(source = dis_data_file,
-               backend = P.Data.LMDB,
-               batch_size = batch_size,
-               ntop = 2,
-               transform_param = dict(scale = dis_scale))
-
-    flux_data, flux_name = \
-        L.Data(source = flux_data_file,
-               backend = P.Data.LMDB,
-               batch_size = batch_size,
-               ntop = 2,
-               transform_param = dict(scale = flux_scale))
 
     label, label_name = \
         L.Data(source = label_file,
@@ -53,9 +78,12 @@ def build_Train_Data(net, prefix, batch_size):
     if args.shuffle_channel:
         dis_data, flux_data = L.ShuffleChannel(dis_data, flux_data, ntop = 2);
 
-    data = L.Concat(dis_data, flux_data, ntop = 1)
-    net.Silence = L.Silence(dis_name, flux_name, label_name,
+    if mode == "FLUX_DIS":
+        net.Silence = L.Silence(dis_name, flux_name, label_name,
                         ntop = 0)
+    elif mode == "PICS":
+        net.Silence = L.Silence(pic_name, label_name,
+                                ntop = 0)
     return data, label
 
 def build_Test_Data(net,
@@ -69,6 +97,12 @@ def build_Test_Data(net,
     net.Data3 = flux_data
 
     data = L.Concat(dis_data, flux_data, ntop = 1)
+    return data, 0
+
+def build_Test_Data_Pic(net,
+                        input_shape = [1, 10, 224, 224]):
+    data = L.Input(input_param = dict(
+        shape = dict(dim = input_shape)))
     return data, 0
 
 def build_Resnet(split, bottom, repeat, stage_num, channels, stage_list = None):
@@ -129,8 +163,9 @@ def conv_BN_scale_relu(split,bottom,nout,ks,stride,pad=0, conv_type = "Convoluti
                      param = [dict(lr_mult = 0,decay_mult = 0),
                               dict(lr_mult = 0,decay_mult = 0),
                               dict(lr_mult = 0,decay_mult = 0)])
-    scale = L.Scale(BN,scale_param = dict(bias_term = True),in_place = True)
-    relu = L.ReLU(scale,in_place = True)
+    scale = L.Scale(BN,scale_param = dict(bias_term = True),in_place = True, lr_mult = 0.01)
+    #relu = L.ReLU(scale,in_place = True)
+    relu = L.PReLU(scale,in_place = True)
     if not name is None:
         net[name] = conv
         net[name + "_BN"] = BN
@@ -158,7 +193,7 @@ def ResNet_block(split,bottom,nout,projection_stride):
         scale2,relu2 = conv_BN_scale_relu(split,relu3,nout,1,1,0)
 
     wise = L.Eltwise(scale2,scale0,operation = P.Eltwise.SUM)
-    wise_relu = L.ReLU(wise,in_place = True)
+    wise_relu = L.PReLU(wise,in_place = True)
     return wise_relu
 
 def build_UpSample(split, bottom, stage_num, channels, stage_list = []):
@@ -172,7 +207,7 @@ def build_UpSample(split, bottom, stage_num, channels, stage_list = []):
             scale2, relu2 = conv_BN_scale_relu(split,stage_list[snum],nout,ks=1,stride=1,pad=0,
                                                      name = "StageLink" + str(snum))
             result = L.Eltwise(scale, scale2, operation = P.Eltwise.SUM)
-            result = L.ReLU(result, in_place = True)
+            result = L.PReLU(result, in_place = True)
             snum -= 1
         else:
             result = relu
@@ -186,17 +221,17 @@ def build_Loss(split, bottom, label):
                          pad = 0,bias_term = True,
                          weight_filler = dict(type = 'xavier'),
                          bias_filler = dict(type = 'constant'))
-    pic = L.ReLU(pic, in_place = True)
+    pic = L.PReLU(pic, in_place = True)
     if split == "train":
         loss = L.EuclideanLoss(pic, label, propagate_down = [1, 0])
     else:
         loss = pic #TODO write to file
     return loss
 
-def make_net(split, prefix, batch_size):
+def make_net(split, prefix, batch_size, mode):
     global net
     net = caffe.NetSpec()
-    data, label = build_Data(net, split, prefix, batch_size)
+    data, label = build_Data(net, split, prefix, batch_size, mode)
     basechannel = args.channel
     stage_num = args.stage_num
     stage_list = []
@@ -231,7 +266,9 @@ if __name__ == "__main__":
     p.add_argument("--bottleneck", default = False, action = "store_true", help = "use bottleneck in resnet50")
     args = p.parse_args()
 
+    mode = "PICS"
+
     with open(args.output + "/train_resnet_auto.prototxt", "w") as f:
-        f.write(str(make_net("train", args.prefix, args.batch)))
+        f.write(str(make_net("train", args.prefix, args.batch, mode)))
     with open(args.output + "/test_resnet_auto.prototxt", "w") as f:
-        f.write(str(make_net("test", "", 1)))
+        f.write(str(make_net("test", "", 1, mode)))
