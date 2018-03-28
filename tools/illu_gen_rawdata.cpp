@@ -25,10 +25,14 @@ DEFINE_double(min_light_src_height, 1.0, "Lower bound of height of light source"
 DEFINE_double(max_light_src_height, 50.0, "Upper bound of height of light source");
 DEFINE_string(dst_datafile, "illu_raw_data.txt", "Destination datafile");
 DEFINE_string(dst_dir, "/data3/lzh/illu/", "Destination directory");
+DEFINE_int32(photon_per_pixel, 20, "Remain photon count per pixel");
 
 namespace {
 
 inline double sqr(double x) { return x * x; }
+double squ_dis(const Pos& p1, const Pos& p2) {
+  return sqr(p1.x_ - p2.x_) + sqr(p1.y_ - p2.y_) + sqr(p1.z_ - p2.z_);
+}
 
 double random_real_lr(double l, double r) {
   static boost::mt19937 rng;
@@ -58,8 +62,28 @@ double get_sphere_rectangle_area(double alpha, double beta, double radius) {
   return (4 * C - 2 * M_PI) * sqr(radius);
 }
 
+void addPhoton(PixelRecord *pImg, vector<PhotonRecord> *photons, const int &index,
+    const int &num, Pos hit_pos, Pos num_pos) {
+  vector<int> &num_photons = pImg[index].photons;
+  double num_dis = squ_dis(hit_pos, num_pos);
+  bool inserted = false;
+  for (vector<int>::iterator i = num_photons.begin();
+      i != num_photons.end(); ++i) {
+    if (num_dis <= squ_dis((*photons)[*i].pos_, hit_pos)) {
+      num_photons.insert(i, num);
+      inserted = true;
+      break;
+    }
+  }
+  if (!inserted && num_photons.size() < FLAGS_photon_per_pixel) {
+    num_photons.push_back(num);
+  } else if (num_photons.size() > FLAGS_photon_per_pixel) {
+    num_photons.pop_back();
+  }
+}
+
 void getImg(int H, int W, double min_height, double max_height,
-    PixelRecord* pImg, Mat *pResImg, vector<PhotonRecord> *photons) {
+    PixelRecord *pImg, Mat *pResImg, vector<PhotonRecord> *photons) {
   // Init 
 	for (int i = 0; i < H; ++i) {
 		for (int j = 0; j < W; ++j) {
@@ -101,12 +125,12 @@ void getImg(int H, int W, double min_height, double max_height,
 				photon.depth_ = sqrt(sqr(height) + sqr(i_pos) + sqr(j_pos));
 				int num = photons->size();
 				int x = round(i_pos + H * 0.5), y = round(j_pos + W * 0.5);
-				for (int dx = -4; dx <= 4; ++dx)
-					for (int dy = -4; dy <= 4; ++dy)
-						if (0 <= dx + x && dx + x < W
-								&& 0 <= dy + y && dy + y < H) {
-              pImg[(dx + x) * W + dy + y].photons.push_back(num);
-            }
+				for (int new_x = max(0, x - 16); new_x <= x + 16 && new_x < H; ++new_x)
+					for (int new_y = max(0, y - 16); new_y <= y + 16 && new_y < W; ++new_y) {
+            const int index = new_x * W + new_y;
+            Pos hit_pos(new_x - H * 0.5, new_y - W * 0.5, 0);
+            addPhoton(pImg, photons, index, num, hit_pos, photon.pos_);
+          }
 				photons->push_back(photon);
       }
     }
@@ -177,11 +201,11 @@ int main(int argc, char **argv) {
   Mat *pResImg = new Mat(H, W, CV_8UC3, Scalar(0, 0, 0));
   vector<PhotonRecord> *photons = new vector<PhotonRecord>();
   for (int ca = 0; ca < N; ++ca) {
-    std::cerr << "Img" << ca << std::endl;
-    getImg(H, W, FLAGS_min_light_src_height, FLAGS_max_light_src_height,
-      pImg, pResImg, photons);
     char bmp_file[100];
     sprintf(bmp_file, "%sraw_%d.bmp", FLAGS_dst_dir.c_str(), ca);
+    LOG(INFO) << bmp_file;
+    getImg(H, W, FLAGS_min_light_src_height, FLAGS_max_light_src_height,
+      pImg, pResImg, photons);
     imwrite(bmp_file, *pResImg);
     fprintf(fout, "%s\n", bmp_file);
     fprintf(fout, "%lu\n", photons->size());
