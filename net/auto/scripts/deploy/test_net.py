@@ -65,6 +65,7 @@ def GetOnePic(net, index, use_train = False):
         print "Use Test Data"
         prefix = "/data3/lzh/100x224x224"
     prefix = prefix + args.suffix
+    """
     dis_data = GetOneFromLMDB( \
         prefix + "/raw_data_photon_dis/", index)
     flux_data = GetOneFromLMDB( \
@@ -74,6 +75,10 @@ def GetOnePic(net, index, use_train = False):
 
     net.blobs['Data1'].data[...] = dis_data *  0.01
     net.blobs['Data3'].data[...] = flux_data
+    """
+    pic_data = GetOneFromLMDB(prefix + "/data", index)
+    label = GetOneFromLMDB(prefix + "/label", index)
+    net.blobs['Input1'].data[...] = pic_data / 256.0
 
     net.forward()
 
