@@ -7,10 +7,14 @@ namespace illu {
 
 struct Pos {
   double x_, y_, z_;
+  Pos(double x = 0, double y = 0, double z = 0):
+    x_(x), y_(y), z_(z) { }
 };
 
 struct RGB {
-  double b_, g_, r_;
+  double r_, g_, b_;
+  RGB(double r = 0, double g = 0, double b = 0):
+    r_(r), g_(g), b_(b) { }
 };
 
 struct PhotonRecord {

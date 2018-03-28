@@ -65,6 +65,7 @@ def GetOnePic(net, index, use_train = False):
         print "Use Test Data"
         prefix = "/data3/lzh/100x224x224"
     prefix = prefix + args.suffix
+    """
     dis_data = GetOneFromLMDB( \
         prefix + "/raw_data_photon_dis/", index)
     flux_data = GetOneFromLMDB( \
@@ -74,6 +75,10 @@ def GetOnePic(net, index, use_train = False):
 
     net.blobs['Data1'].data[...] = dis_data *  0.01
     net.blobs['Data3'].data[...] = flux_data
+    """
+    pic_data = GetOneFromLMDB(prefix + "/data", index)
+    label = GetOneFromLMDB(prefix + "/label", index)
+    net.blobs['Input1'].data[...] = pic_data / 256.0
 
     net.forward()
 
@@ -106,6 +111,7 @@ if __name__ == "__main__":
     p.add_argument("--train", action = "store_true", default = False)
     p.add_argument("--blob", default = "Convolution22")
     p.add_argument("--suffix", default = "_largeview", help = "data_dir suffix, such as <_largeview>")
+    p.add_argument("--jump", default = 0, type = int)
     p.add_argument("model")
 
     args = p.parse_args()
@@ -115,7 +121,8 @@ if __name__ == "__main__":
     if not os.path.isdir("./pic/"):
         os.mkdir("./pic/")
     for i in range(10):
-        print "INDEX: ", i
+        index = i + args.jump + 1
+        print "INDEX: ", index
         print "------------------------------------"
-        GetOnePic(net, i + 1, args.train)
+        GetOnePic(net, index, args.train)
 
