@@ -261,6 +261,23 @@ class BilinearFiller : public Filler<Dtype> {
   }
 };
 
+template <typename Dtype>
+class BilateralFiller : public Filler<Dtype> {
+ public:
+  explicit BilateralFiller(const FillerParameter& param)
+      : Filler<Dtype>(param) {}
+  virtual void Fill(Blob<Dtype>* blob) {
+    Dtype* data = blob->mutable_cpu_data();
+    for (int i = 0; i < blob->count(); ++i) {
+      int x = i % blob->width();
+      int y = (i / blob->width()) % blob->height();
+      data[i] = (x + y) % 2 ? this->filler_param_.max() : this->filler_param_.min();
+    }
+    CHECK_EQ(this->filler_param_.sparse(), -1)
+         << "Sparsity not supported by this Filler.";
+  }
+};
+
 /**
  * @brief Get a specific filler from the specification given in FillerParameter.
  *
@@ -284,6 +301,8 @@ Filler<Dtype>* GetFiller(const FillerParameter& param) {
     return new MSRAFiller<Dtype>(param);
   } else if (type == "bilinear") {
     return new BilinearFiller<Dtype>(param);
+  } else if (type == "bilateral") {
+    return new BilateralFiller<Dtype>(param);
   } else {
     CHECK(false) << "Unknown filler name: " << param.type();
   }
