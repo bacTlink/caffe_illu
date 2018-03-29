@@ -218,17 +218,82 @@ def build_UpSample(split, bottom, stage_num, channels, stage_list = []):
     #        nout /= 2
     return result
 
-def build_Loss(split, bottom, label):
-    pic = L.Convolution(bottom,kernel_size = 1,stride = 1,num_output = 1,
+def deriv_h(bottom, name, num):
+    return L.Convolution(bottom,
+            name = name,
+            param = [dict(lr_mult = 0,decay_mult = 0)],
+            num_output = num, group = num,
+            stride = 1,
+            kernel_h = 2, kernel_w = 1,
+            pad_h = 1, pad_w = 0,
+            bias_term = False,
+            weight_filler = dict(type = 'bilateral', min = -1, max = 1),
+            )
+
+def deriv_w(bottom, name):
+    return L.Convolution(bottom,
+            name = name,
+            param = [dict(lr_mult = 0,decay_mult = 0)],
+            num_output = num, group = num,
+            stride = 1,
+            kernel_h = 1, kernel_w = 2,
+            pad_h = 0, pad_w = 1,
+            bias_term = False,
+            weight_filler = dict(type = 'bilateral', min = -1, max = 1),
+            )
+
+def deriv(bottom, name, num):
+    d_h = deriv_h(bottom, name + 'H', num)
+    d_w = deriv_h(bottom, name + 'W', num)
+    d_c_h = L.Crop(d_h, bottom, crop_param = dict(
+        axis = 2,
+        offset = [0, 0]
+        ))
+    d_c_w = L.Crop(d_w, bottom, crop_param = dict(
+        axis = 2,
+        offset = [0, 0]
+        ))
+    return L.Concat(d_c_h, d_c_w, name = name)
+
+def build_Loss(split, data, bottom, label):
+    net_result = L.Convolution(bottom,kernel_size = 1,stride = 1,num_output = 1,
                          pad = 0,bias_term = True,
                          weight_filler = dict(type = 'xavier'),
                          bias_filler = dict(type = 'constant'))
-    pic = L.PReLU(pic, in_place = True)
-    if split == "train":
+    net_result = L.PReLU(net_result, in_place = True)
+    average_data = L.Convolution(data, kernel_size = 1, stride = 1, num_output = 1,
+            name = 'AverageData', 
+            pad = 0, bias_term = False,
+            weight_filler = dict(type = 'constant', value = 0.1),
+            param = [dict(lr_mult = 0,decay_mult = 0)]
+            )
+    pic = L.Eltwise(net_result,average_data,name='Sum',operation = P.Eltwise.SUM, propagate_down = [1, 0])
+    ref_loss = 0
+    if split == 'train':
         loss = L.EuclideanLoss(pic, label, propagate_down = [1, 0])
+        ref_loss = L.EuclideanLoss(average_data, label, propagate_down = [0, 0], loss_weight = 0)
     else:
-        loss = pic #TODO write to file
-    return loss
+        loss = pic
+
+    loss_deriv = 0
+    ref_loss_deriv = 0
+    if split == 'train' and (args.deriv or args.sec_deriv):
+        label_deriv = deriv(label, 'LabelDeriv', 1)
+        data_deriv = deriv(average_data, 'DataDeriv', 1)
+        pic_deriv = deriv(pic, 'PicDeriv', 1)
+        loss_deriv = L.EuclideanLoss(pic_deriv, label_deriv, propagate_down = [1, 0], loss_weight = 1)
+        ref_loss_deriv = L.EuclideanLoss(data_deriv, label_deriv, propagate_down = [0, 0], loss_weight = 0)
+
+    loss_sec_deriv = 0
+    ref_loss_sec_deriv = 0
+    if split == 'train' and args.sec_deriv:
+        label_sec_deriv = deriv(label_deriv, 'LabelSecDeriv', 2)
+        data_sec_deriv = deriv(data_deriv, 'DataSecDeriv', 2)
+        pic_sec_deriv = deriv(pic_deriv, 'PicSecDeriv', 2)
+        loss_sec_deriv = L.EuclideanLoss(pic_sec_deriv, label_sec_deriv, propagate_down = [1, 0], loss_weight = 0.5)
+        ref_loss_sec_deriv = L.EuclideanLoss(data_sec_deriv, label_sec_deriv, propagate_down = [0, 0], loss_weight = 0)
+
+    return loss, ref_loss, loss_deriv, ref_loss_deriv, loss_sec_deriv, ref_loss_sec_deriv
 
 def make_net(split, prefix, batch_size, mode):
     global net
@@ -248,9 +313,19 @@ def make_net(split, prefix, batch_size, mode):
                              stage_num = stage_num,
                              channels = 256,
                              stage_list = stage_list)
-    loss = build_Loss(split, feature, label)
+    (loss, ref_loss,
+            loss_deriv, ref_loss_deriv,
+            loss_sec_deriv, ref_loss_sec_deriv
+            ) = build_Loss(split, data, feature, label)
     if split == "train":
         net.Loss = loss
+        net.RefLoss = ref_loss
+        if args.deriv:
+            net.LossDeriv = loss_deriv
+            net.RefLossDeriv = ref_loss_deriv
+        if args.sec_deriv:
+            net.LossSecDeriv = loss_sec_deriv
+            net.RefLossSecDeriv = ref_loss_sec_deriv
     else:
         net.Output = loss
     return net.to_proto()
@@ -266,6 +341,8 @@ if __name__ == "__main__":
     p.add_argument("--stage_link", default = False, action = "store_true", help = "link resnet stage to Deconvolution")
     p.add_argument("--shuffle_channel", default = False, action = "store_true", help = "add shuffle channel layer to data")
     p.add_argument("--bottleneck", default = False, action = "store_true", help = "use bottleneck in resnet50")
+    p.add_argument("--deriv", default = False, action = "store_true", help = "use deriv loss")
+    p.add_argument("--sec_deriv", default = False, action = "store_true", help = "use sec_deriv loss")
     args = p.parse_args()
 
     mode = "PICS"
