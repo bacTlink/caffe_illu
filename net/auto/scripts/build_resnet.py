@@ -153,7 +153,7 @@ def conv_BN_scale_relu(split,bottom,nout,ks,stride,pad=0, conv_type = "Convoluti
                      param = [dict(lr_mult = 0,decay_mult = 0),
                               dict(lr_mult = 0,decay_mult = 0),
                               dict(lr_mult = 0,decay_mult = 0)])
-    scale = L.Scale(BN,scale_param = dict(bias_term = True),in_place = True, param = dict(lr_mult = 0.0))
+    scale = L.Scale(BN,scale_param = dict(bias_term = True),in_place = True, param = dict(lr_mult = 0.01))
     #relu = L.ReLU(scale,in_place = True)
     relu = L.PReLU(scale,in_place = True)
     if not name is None:
