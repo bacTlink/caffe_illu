@@ -8,6 +8,7 @@ import caffe
 import numpy as np
 import lmdb
 import shutil
+import random
 
 src_dir = '/data3/lzh/10000x224x224_ring_images_diff/'
 dst_dir = '/data3/lzh/10000x10x224x224_ring_images_diff/'
@@ -51,5 +52,5 @@ with env.begin(write=True) as txn:
 
         for i in xrange(2):
             datum = caffe.io.array_to_datum(np.append(label[i], data[i], axis = 0))
-            txn.put(base_filename + 'c' + str(i), datum.SerializeToString())
+            txn.put(str(random.randint(0, int(1e10))) + '-' + base_filename + 'c' + str(i), datum.SerializeToString())
 

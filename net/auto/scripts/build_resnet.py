@@ -46,46 +46,34 @@ def build_Train_Data(net, prefix, batch_size, mode = "FLUX_DIS"):
                    ntop = 2,
                    transform_param = dict(scale = flux_scale))
         data = L.Concat(dis_data, flux_data, ntop = 1)
-    elif mode == "PICS":
-        pic_data_file = prefix + "/data"
-        pic_scale = 0.00390625
-        pic_scale = 1.0
 
-        data, pic_name = \
-            L.Data(source = pic_data_file,
+        label_file = prefix + "/raw_data_conv"
+        label_scale = 0.00390625
+
+        label, label_name = \
+            L.Data(source = label_file,
                    backend = P.Data.LMDB,
                    batch_size = batch_size,
                    ntop = 2,
-                   transform_param = dict(scale = pic_scale))
-    else:
-        print "Unknown type"
-
-    if mode == "FLUX_DIS":
-        label_file = prefix + "/raw_data_conv"
-    elif mode == "PICS":
-        label_file  = prefix + "/label"
-    else:
-        print "Unknown type"
-
-    label_scale = 0.00390625
-    label_scale = 1.0
-
-    label, label_name = \
-        L.Data(source = label_file,
-               backend = P.Data.LMDB,
-               batch_size = batch_size,
-               ntop = 2,
-               transform_param = dict(scale = label_scale))
-
-    if args.shuffle_channel:
-        dis_data, flux_data = L.ShuffleChannel(dis_data, flux_data, ntop = 2);
-
-    if mode == "FLUX_DIS":
+                   transform_param = dict(scale = label_scale))
+        if args.shuffle_channel:
+            dis_data, flux_data = L.ShuffleChannel(dis_data, flux_data, ntop = 2);
         net.Silence = L.Silence(dis_name, flux_name, label_name,
                         ntop = 0)
     elif mode == "PICS":
-        net.Silence = L.Silence(pic_name, label_name,
+        label_data_file = prefix + "/label,data"
+
+        label_data = \
+            L.Data(source = label_data_file,
+                   backend = P.Data.LMDB,
+                   batch_size = batch_size,
+                   transform_param = dict(
+                       mirror = True,
+                       crop_size = 224))
+        label, data = L.Slice(label_data, slice_param = dict(slice_point = [1]), ntop = 2)
+        net.Silence = L.Silence(label_data,
                                 ntop = 0)
+
     return data, label
 
 def build_Test_Data(net,
