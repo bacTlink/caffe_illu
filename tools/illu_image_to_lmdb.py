@@ -1,31 +1,33 @@
 import os, sys
 caffe_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], '../python/')
 sys.path.append(caffe_path)
+caffe_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], '../../../caffe_illu/python/')
+sys.path.append(caffe_path)
 
 import caffe
 import numpy as np
 import lmdb
 import shutil
 
-base_dir = '/data3/lzh/1000x224x224_ring_images/'
-filelist = os.path.join(base_dir, 'filelist_shuf.txt')
+src_dir = '/data3/lzh/10000x224x224_ring_images_diff/'
+dst_dir = '/data3/lzh/10000x10x224x224_ring_images_diff/'
+filelist = os.path.join(src_dir, 'filelist.txt')
 img_count = 10
 
 count = 0
-label_path = os.path.join(base_dir, 'label')
-data_path = os.path.join(base_dir, 'data')
-shutil.rmtree(label_path, ignore_errors = True)
-shutil.rmtree(data_path, ignore_errors = True)
-env_label = lmdb.open(label_path, map_size=int(1e12))
-env_data = lmdb.open(data_path, map_size=int(1e12))
+path = os.path.join(dst_dir, 'label,data')
+shutil.rmtree(path, ignore_errors = True)
+if not os.path.exists(path):
+    os.makedirs(path)
+env = lmdb.open(path, map_size=int(1e12))
 
-with env_label.begin(write=True) as txn_label, env_data.begin(write=True) as txn_data:
+with env.begin(write=True) as txn:
     for line in open(filelist):
         label_filename = line[:-1]
         print label_filename
 
         # process label
-        label_img = caffe.io.load_image(os.path.join(base_dir, label_filename))
+        label_img = caffe.io.load_image(os.path.join(src_dir, label_filename))
         shape = label_img.shape
         label = []
         for i in xrange(3):
@@ -36,7 +38,7 @@ with env_label.begin(write=True) as txn_label, env_data.begin(write=True) as txn
         imgs = []
         for i in xrange(1, img_count + 1):
             filename = base_filename + '_' + str(i) + '.png'
-            imgs.append(caffe.io.load_image(os.path.join(base_dir, filename)))
+            imgs.append(caffe.io.load_image(os.path.join(src_dir, filename)))
         data = []
         for img in imgs:
             assert (shape == img.shape)
@@ -48,7 +50,6 @@ with env_label.begin(write=True) as txn_label, env_data.begin(write=True) as txn
                     data[i] = np.append(data[i], tmp_data, axis = 0)
 
         for i in xrange(2):
-            datum_label = caffe.io.array_to_datum(label[i])
-            datum_data = caffe.io.array_to_datum(data[i])
-            txn_label.put(base_filename + str(i), datum_label.SerializeToString())
-            txn_data.put(base_filename + str(i), datum_data.SerializeToString())
+            datum = caffe.io.array_to_datum(np.append(label[i], data[i], axis = 0))
+            txn.put(base_filename + 'c' + str(i), datum.SerializeToString())
+
