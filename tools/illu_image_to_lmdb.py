@@ -11,9 +11,23 @@ import shutil
 import random
 
 src_dir = '/data3/lzh/10000x224x224_ring_images_diff/'
-dst_dir = '/data3/lzh/10000x10x224x224_ring_images_diff/'
+dst_dir = '/data3/lzh/10000x10x224x224_ring_images_diff_filtered/'
 filelist = os.path.join(src_dir, 'filelist.txt')
 img_count = 10
+
+def mse(pic1, pic2):
+    assert pic1.ndim == 2
+    assert pic2.ndim == 2
+    assert pic1.shape == pic2.shape
+    pic1 = pic1 * 255
+    pic2 = pic2 * 255
+    return np.mean((pic1 - pic2) ** 2)
+
+def large_mse(label, data):
+    mse_res = mse(label[0,:,:], np.mean(data, axis = 0))
+    if (mse_res > 100):
+        print mse_res
+    return mse_res > 100
 
 count = 0
 path = os.path.join(dst_dir, 'label,data')
@@ -50,7 +64,8 @@ with env.begin(write=True) as txn:
                 else:
                     data[i] = np.append(data[i], tmp_data, axis = 0)
 
-        for i in xrange(2):
-            datum = caffe.io.array_to_datum(np.append(label[i], data[i], axis = 0))
-            txn.put(str(random.randint(0, int(1e10))) + '-' + base_filename + 'c' + str(i), datum.SerializeToString())
+        for i in xrange(3):
+            if large_mse(label[i], data[i]):
+                datum = caffe.io.array_to_datum(np.append(label[i], data[i], axis = 0))
+                txn.put(str(random.randint(0, int(1e10))) + '-' + base_filename + 'c' + str(i), datum.SerializeToString())
 
