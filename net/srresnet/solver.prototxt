@@ -16,6 +16,6 @@ max_iter: 1000000
 #iter_size: 2
 # snapshot intermediate results
 snapshot: 10000
-snapshot_prefix: "snapshots/SRResNet-MSE"
+snapshot_prefix: "snapshots/SRResNet-MSE-v1.0"
 # solver mode: CPU or GPU
 solver_mode: GPU

@@ -2598,54 +2598,6 @@ layer {
         lr_mult: 0.1
     }
     convolution_param {
-        num_output: 256
-        kernel_size: 3
-        stride: 1
-        pad: 1
-        weight_filler {
-            type: "msra"
-        }
-        bias_filler {
-            type: "constant"
-        }
-    }
-}
-layer {
-    name: "conv_g36"
-    type: "Convolution"
-    bottom: "conv_g35"
-    top: "conv_g36"
-    param {
-        lr_mult: 1
-    }
-    param {
-        lr_mult: 0.1
-    }
-    convolution_param {
-        num_output: 256
-        kernel_size: 3
-        stride: 1
-        pad: 1
-        weight_filler {
-            type: "msra"
-        }
-        bias_filler {
-            type: "constant"
-        }
-    }
-}
-layer {
-    name: "conv_g37"
-    type: "Convolution"
-    bottom: "conv_g36"
-    top: "conv_g37"
-    param {
-        lr_mult: 1
-    }
-    param {
-        lr_mult: 0.1
-    }
-    convolution_param {
         num_output: 1
         kernel_size: 3
         stride: 1

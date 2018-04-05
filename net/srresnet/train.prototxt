@@ -8,7 +8,7 @@ layer {
     crop_size: 224
   }
   data_param {
-    source: "/data3/lzh/10000x10x224x224_ring_images_diff/label,data"
+    source: "/data3/lzh/10000x10x224x224_ring_images_diff_filtered/label,data"
     batch_size: 3
     backend: LMDB
   }
@@ -2610,54 +2610,6 @@ layer {
         lr_mult: 0.1
     }
     convolution_param {
-        num_output: 256
-        kernel_size: 3
-        stride: 1
-        pad: 1
-        weight_filler {
-            type: "msra"
-        }
-        bias_filler {
-            type: "constant"
-        }
-    }
-}
-layer {
-    name: "conv_g36"
-    type: "Convolution"
-    bottom: "conv_g35"
-    top: "conv_g36"
-    param {
-        lr_mult: 1
-    }
-    param {
-        lr_mult: 0.1
-    }
-    convolution_param {
-        num_output: 256
-        kernel_size: 3
-        stride: 1
-        pad: 1
-        weight_filler {
-            type: "msra"
-        }
-        bias_filler {
-            type: "constant"
-        }
-    }
-}
-layer {
-    name: "conv_g37"
-    type: "Convolution"
-    bottom: "conv_g36"
-    top: "conv_g37"
-    param {
-        lr_mult: 1
-    }
-    param {
-        lr_mult: 0.1
-    }
-    convolution_param {
         num_output: 1
         kernel_size: 3
         stride: 1
@@ -2673,7 +2625,7 @@ layer {
 layer {
   name: "mse_loss"
   type: "EuclideanLoss"
-  bottom: "conv_g37"
+  bottom: "conv_g35"
   bottom: "label"
   top: "mse_loss"
 }
