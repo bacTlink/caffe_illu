@@ -27,8 +27,8 @@ def Build_Train_Data(prefix, batch_size):
     return data, label
 
 def Build_Test_Data(input_shape = [1, 18, 224, 224]):
-    label_data = L.Input(input_param = dict(
-        shape = dict(dim = input_shape)))
+    label_data = L.Input(name = "Input",
+        input_param = dict(shape = dict(dim = input_shape)))
     label, data = L.Slice(label_data, slice_param = dict(slice_point = [3]), ntop = 2)
     return data, label
 
@@ -118,6 +118,25 @@ def make_net(split, prefix, batch_size):
     net.RefLoss = ref_loss
     return net.to_proto()
 
+def make_solver():
+    res = ''
+    res += 'net: "train_srresnet_auto.prototxt"\n'
+    res += 'type: "Adam"\n'
+    res += '# default momentum: 0.9\n'
+    res += 'momentum: 0.9\n'
+    res += '# default momentum2: 0.999\n'
+    res += 'momentum2: 0.999\n'
+    res += '# default delta: 1e-8\n'
+    res += '# delta: 0.00000001\n'
+    res += 'base_lr: 0.0001\n'
+    res += 'lr_policy: "fixed"\n'
+    res += 'display: 100\n'
+    res += 'max_iter: 100000\n'
+    res += 'snapshot: 10000\n'
+    res += 'snapshot_prefix: "snapshots/SR"\n'
+    res += 'solver_mode: GPU"\n'
+    return res;
+
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--output", default = ".")
@@ -126,9 +145,14 @@ if __name__ == "__main__":
     p.add_argument("--channel", default = 64, type = int, help = "convolution output_num")
     p.add_argument("--prefix", default = "/data3/lzh/1000x224x224", help = "data dir")
     p.add_argument("--insert_bn", default = False, action = "store_true", help = "insert batch_norm in resnet")
+    p.add_argument("--loss", default = "MSE", help = "Loss type: MSE or abs(#TODO)")
     args = p.parse_args()
 
-    with open(args.output + "/train_resnet_auto.prototxt", "w") as f:
+    with open(args.output + "/train_srresnet_auto.prototxt", "w") as f:
         f.write(str(make_net("train", args.prefix, args.batch)))
-    with open(args.output + "/test_resnet_auto.prototxt", "w") as f:
+    with open(args.output + "/test_srresnet_auto.prototxt", "w") as f:
         f.write(str(make_net("test", "", 1)))
+    with open(args.output + "/solver_srresnet_auto.prototxt", "w") as f:
+        f.write(make_solver())
+    with open(args.output + "/train_auto.sh", "w") as f:
+        f.write(make_solver())
