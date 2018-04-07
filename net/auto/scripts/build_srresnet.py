@@ -140,7 +140,7 @@ def make_solver():
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--output", default = ".")
-    p.add_argument("--batch", default = 20, type = int)
+    p.add_argument("--batch", default = 12, type = int)
     p.add_argument("--resnet_blocks_num", default = 8, type = int)
     p.add_argument("--channel", default = 64, type = int, help = "convolution output_num")
     p.add_argument("--prefix", default = "/data3/lzh/1000x224x224", help = "data dir")
