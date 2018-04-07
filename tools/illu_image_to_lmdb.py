@@ -10,8 +10,8 @@ import lmdb
 import shutil
 import random
 
-src_dir = '/data3/lzh/10000x224x224_ring_images_diff/'
-dst_dir = '/data3/lzh/10000x10x224x224_ring_images_diff_filtered/'
+src_dir = '/data3/lzh/1000x224x224_ring_images/'
+dst_dir = '/data3/lzh/1000x10x224x224_ring_images_filtered/'
 filelist = os.path.join(src_dir, 'filelist.txt')
 img_count = 10
 
@@ -25,9 +25,9 @@ def mse(pic1, pic2):
 
 def large_mse(label, data):
     mse_res = mse(label[0,:,:], np.mean(data, axis = 0))
-    if (mse_res > 100):
+    if (mse_res > 20):
         print mse_res
-    return mse_res > 100
+    return mse_res > 20
 
 count = 0
 path = os.path.join(dst_dir, 'label,data')

@@ -23,13 +23,14 @@ def Build_Train_Data(prefix, batch_size):
                transform_param = dict(
                    mirror = True,
                    crop_size = 224))
-    label, data = L.Slice(label_data, slice_param = dict(slice_point = [1]), ntop = 2)
+    label, data = L.Slice(label_data, slice_param = dict(slice_point = [3]), ntop = 2)
     return data, label
 
-def Build_Test_Data(input_shape = [1, 10, 224, 224]):
-    data = L.Input(input_param = dict(
+def Build_Test_Data(input_shape = [1, 18, 224, 224]):
+    label_data = L.Input(input_param = dict(
         shape = dict(dim = input_shape)))
-    return data, 0
+    label, data = L.Slice(label_data, slice_param = dict(slice_point = [3]), ntop = 2)
+    return data, label
 
 def Build_Data(split, prefix, batch_size):
     if split == "train":
@@ -37,8 +38,17 @@ def Build_Data(split, prefix, batch_size):
     elif split == "test":
         return Build_Test_Data()
 
-def conv(bottom, channels):
+def conv(bottom, channels, name = None):
+    if (name is None):
+        return L.Convolution(bottom,
+                             num_output = channels,
+                             kernel_size = 3,
+                             stride = 1, pad = 1,
+                             weight_filler = dict(type = 'msra'),
+                             bias_filler = dict(type = 'constant'),
+                             param = [dict(lr_mult = 1.0), dict(lr_mult = 0.1)])
     return L.Convolution(bottom,
+                         name = name,
                          num_output = channels,
                          kernel_size = 3,
                          stride = 1, pad = 1,
@@ -81,7 +91,7 @@ def Build_Resnet(split, bottom, resnet_blocks_num, channels, insert_bn):
     for i in xrange(resnet_blocks_num):
         last = ResNet_Block(split, last, channels, insert_bn)
     result = eltwise(bottom, last)
-    result = conv(result, 1)
+    result = conv(result, 3, "Output")
     return result
 
 def Build_Loss(split, label, data, pic):
@@ -92,11 +102,8 @@ def Build_Loss(split, label, data, pic):
             param = [dict(lr_mult = 0,decay_mult = 0)]
             )
     ref_loss = 0
-    if split == 'train':
-        loss = L.EuclideanLoss(pic, label, propagate_down = [1, 0])
-        ref_loss = L.EuclideanLoss(average_data, label, propagate_down = [0, 0], loss_weight = 0)
-    else:
-        loss = pic
+    loss = L.EuclideanLoss(pic, label, propagate_down = [1, 0])
+    ref_loss = L.EuclideanLoss(average_data, label, propagate_down = [0, 0], loss_weight = 0)
     return loss, ref_loss
 
 def make_net(split, prefix, batch_size):
@@ -107,11 +114,8 @@ def make_net(split, prefix, batch_size):
                        args.channel,
                        args.insert_bn)
     (loss, ref_loss) = Build_Loss(split, label, data, pic)
-    if split == "train":
-        net.Loss = loss
-        net.RefLoss = ref_loss
-    else:
-        net.Output = loss
+    net.Loss = loss
+    net.RefLoss = ref_loss
     return net.to_proto()
 
 if __name__ == "__main__":
