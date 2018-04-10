@@ -23,13 +23,13 @@ def Build_Train_Data(prefix, batch_size):
                transform_param = dict(
                    mirror = True,
                    crop_size = 224))
-    label, data = L.Slice(label_data, slice_param = dict(slice_point = [3]), ntop = 2)
+    label, data = L.Slice(label_data, slice_param = dict(slice_point = [1]), ntop = 2)
     return data, label
 
 def Build_Test_Data(input_shape = [1, 18, 224, 224]):
     label_data = L.Input(name = "Input",
         input_param = dict(shape = dict(dim = input_shape)))
-    label, data = L.Slice(label_data, slice_param = dict(slice_point = [3]), ntop = 2)
+    label, data = L.Slice(label_data, slice_param = dict(slice_point = [1]), ntop = 2)
     return data, label
 
 def Build_Data(split, prefix, batch_size):
@@ -91,7 +91,7 @@ def Build_Resnet(split, bottom, resnet_blocks_num, channels, insert_bn):
     for i in xrange(resnet_blocks_num):
         last = ResNet_Block(split, last, channels, insert_bn)
     result = eltwise(bottom, last)
-    result = conv(result, 3, "Output")
+    result = conv(result, 1, "Output")
     return result
 
 def Build_Loss(split, label, data, pic):
