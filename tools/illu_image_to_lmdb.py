@@ -10,8 +10,8 @@ import lmdb
 import shutil
 import random
 
-src_dir = '/data3/lzh/1000x224x224_ring_images/'
-dst_dir = '/data3/lzh/1000x10x224x224_ring_images_filtered/'
+src_dir = '/data3/lzh/10000x224x224_ring_diff/'
+dst_dir = '/data3/lzh/10000x10x224x224_ring_diff_filtered/'
 filelist = os.path.join(src_dir, 'filelist.txt')
 img_count = 10
 
