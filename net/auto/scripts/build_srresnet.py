@@ -134,7 +134,7 @@ def make_solver():
     res += 'max_iter: 100000\n'
     res += 'snapshot: 10000\n'
     res += 'snapshot_prefix: "snapshots/SR"\n'
-    res += 'solver_mode: GPU"\n'
+    res += 'solver_mode: GPU\n'
     return res;
 
 if __name__ == "__main__":
