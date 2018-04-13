@@ -10,8 +10,9 @@ import lmdb
 import shutil
 import random
 
-src_dir = '/data3/lzh/10000x224x224_ring_diff/'
-dst_dir = '/data3/lzh/10000x10x224x224_ring_diff_filtered/'
+check_mse = False
+src_dir = '/data3/lzh/100x224x224_ring_diff/'
+dst_dir = '/data3/lzh/100x10x224x224_ring_diff/'
 filelist = os.path.join(src_dir, 'filelist.txt')
 img_count = 10
 
@@ -65,7 +66,11 @@ with env.begin(write=True) as txn:
                     data[i] = np.append(data[i], tmp_data, axis = 0)
 
         for i in xrange(3):
-            if large_mse(label[i], data[i]):
+            if (not check_mse) or large_mse(label[i], data[i]):
                 datum = caffe.io.array_to_datum(np.append(label[i], data[i], axis = 0))
-                txn.put(str(random.randint(0, int(1e10))) + '-' + base_filename + 'c' + str(i), datum.SerializeToString())
+                if check_mse:
+                    img_id = str(random.randint(0, int(1e10))) + '-' + base_filename + 'c' + str(i)
+                else:
+                    img_id = base_filename + 'c' + str(i)
+                txn.put(img_id, datum.SerializeToString())
 
