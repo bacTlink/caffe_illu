@@ -1,0 +1,30 @@
+net:
+    G: edsr8
+    P: conv4
+
+    edsr8:
+        type: SimpleResnet
+        channel: 64
+        bottleneck: False
+        block_num: 8
+
+    con4:
+        type: SimpleCNN 
+        conv:
+            kernel: 3
+            stride: 2
+            pad:    1
+            weight_filler: "xavier"
+        scale:
+            lr_mult: 0.01
+        conv_num: 3
+        channel: 64
+        channel_plus: 2
+        map_size: 7
+data:
+    batch_size: 7
+    prefix: /data3/lzh/10000x10x224x224_ring_colored_diff_filtered/label,data
+
+loss:
+    RefLoss: True
+    MSELoss: True
