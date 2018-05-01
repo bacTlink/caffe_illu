@@ -17,13 +17,15 @@ class SimpleResnet(SimpleCNN):
     
     def build(self, data):
         block_num = self._param["block_num"]
-        top = data
-        stages = []
+        top = conv(net = self)(data)
+        first_conv = top
         #resnet block * n
         for i in xrange(block_num):
-            top = block(top, kernel = 3, conv = conv, net = self)
-            stages.append(top)
+            top = block(top, kernel = 3, conv = self.conv, cnn_net = self)
         #output
-        top = L.Eltwise(stages[0], top)
-        top = conv(top, relu = False, name = "Output")
+        top = L.Eltwise(first_conv, top)
+        top = self.conv(top, relu = False, 
+                channel = 1, 
+                name = "Output",
+                **self.check_freeze(None, 2))
         return top

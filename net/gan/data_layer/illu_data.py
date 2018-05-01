@@ -9,10 +9,10 @@
 from pycaffe import L, caffe
 
 def Build_Train_Data(prefix, batch_size):
-    label_data_file = prefix + "/label,data"
+    label_data_file = prefix + "label,data"
     label_data = \
         L.Data(source = label_data_file,
-               backend = P.Data.LMDB,
+               backend = caffe.params.Data.LMDB,
                batch_size = batch_size,
                transform_param = dict(
                    mirror = True,
@@ -20,7 +20,7 @@ def Build_Train_Data(prefix, batch_size):
     label, data = L.Slice(label_data, slice_param = dict(slice_point = [1]), ntop = 2)
     return data, label
 
-def Build_Test_Data(input_shape = [1, 18, 224, 224]):
+def Build_Test_Data(input_shape = [1, 11, 224, 224]):
     label_data = L.Input(name = "Input",
         input_param = dict(shape = dict(dim = input_shape)))
     label, data = L.Slice(label_data, slice_param = dict(slice_point = [1]), ntop = 2)
@@ -35,6 +35,6 @@ def Build_Data(split, prefix, batch_size):
 def illu_data(mode, config):
     prefix = config["data"]["prefix"]
     batch_size = config["data"]["batch_size"]
-    return Build_Data(split = model, 
+    return Build_Data(split = "train" if mode == "training" else "test",
                       prefix = prefix,  
                       batch_size = batch_size)

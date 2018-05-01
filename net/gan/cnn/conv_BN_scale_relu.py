@@ -23,7 +23,7 @@ class ConvBNScaleReLU:
             return self._param[key]
         try:
             return self.net._param["layer"][self._subp][key]
-        except (TypeError, IndexError):
+        except (TypeError, IndexError, KeyError):
             pass
         if key in self.net._param:
             return self.net._param[key]
@@ -38,12 +38,12 @@ class ConvBNScaleReLU:
     def conv_BN_scale_relu(self, bottom, 
                            bn = False,
                            relu = True,
-                           **kargs):
+                           **kwargs):
         self.kwargs = kwargs
         top = L.Convolution(bottom, **self.conv_param())
         if bn:
             top = L.BatchNorm(top, **self.bn_param())
-            top = L.scale(top, **self.scale_param())
+            top = L.Scale(top, **self.scale_param())
         if relu:
             top = self.net.relu(top, in_place = True)
         return top
@@ -76,8 +76,8 @@ class ConvBNScaleReLU:
             "batch_norm_param": {
                 "use_global_stats": use_global_stats,
             },
-            "in_place" = True,
-            "param" = [dict(lr_mult = 0, decay_mult = 0)]*3,
+            "in_place" : True,
+            "param" : [dict(lr_mult = 0, decay_mult = 0)]*3,
             }
         if "name" in self.kwargs:
             param["name"] = self.kwargs["name"] + "_bn"
@@ -88,14 +88,12 @@ class ConvBNScaleReLU:
         param = {
             "scale_param" : dict(bias_term = True),
             "in_place" : True,
-            "param" : dict(lr_mult = self.getparam("lr_mult"),
+            "param" : self.getparam("param"),
             }
         if "name" in self.kwargs:
             param["name"] = self.kwargs["name"] + "_scale"
         self.check_freeze(param, 2) #scale has 2 blobs
-
-    def check_freeze(self, param, blob_num):
-        freeze = self.net.freeze
-        if freeze:
-            param["param"] = [dict(lr_mult = 0, decay_mult)]*blob_num
         return param
+
+    def check_freeze(self, *kargs, **kwargs):
+        return self.net.check_freeze(*kargs, **kwargs)

@@ -11,19 +11,19 @@
 import argparse
 
 import os, sys
-sys.path.append(os.path.realpath(__file__))
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 import GAN
 
 def parse():
     p = argparse.ArgumentParser()
-    p.add_argument("-o", default = ".")
+    p.add_argument("-o", default = None)
     p.add_argument("net", help = "net config")
-    args = p.parse_args()
+    return p
 
-def make_solver():
+def make_solver(session):
     res = ''
-    res += 'net: "train_srresnet_auto.prototxt"\n'
+    res += 'net: "train%s.prototxt"\n' % session
     res += 'type: "Adam"\n'
     res += '# default momentum: 0.9\n'
     res += 'momentum: 0.9\n'
@@ -36,11 +36,17 @@ def make_solver():
     res += 'display: 100\n'
     res += 'max_iter: 100000\n'
     res += 'snapshot: 10000\n'
-    res += 'snapshot_prefix: "snapshots/gan"\n'
+    res += 'snapshot_prefix: "snapshots/gan%s/gan%s"\n' % (session, session)
     res += 'solver_mode: GPU\n'
-    return res;
-
+    with open(args.o + "/solver%s.prototxt" % session, 'w') as f:
+        f.write(res)
 
 if __name__ == "__main__":
     args = parse().parse_args()
+    if not args.o:
+        args.o = os.path.basename(args.net).replace(".yaml", "")
+        args.o = os.path.join(os.path.dirname(__file__) + "/prototxt/", args.o)
+        if not os.path.isdir(args.o):
+            os.mkdir(args.o)
     GAN.GAN(args)()
+    map(make_solver, ["G", "P"])

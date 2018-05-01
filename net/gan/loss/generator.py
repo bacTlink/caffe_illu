@@ -7,6 +7,7 @@
 ##########################################################
 
 from pycaffe import L
+from base_loss import BaseLoss
 
 class GeneratorLoss(BaseLoss):
     def add_loss(self, label, data, pic):

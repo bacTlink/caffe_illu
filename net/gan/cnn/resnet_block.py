@@ -8,21 +8,21 @@
 
 from pycaffe import L
 
-def resnet_block(bottom, conv, net = None, **kwargs):
+def resnet_block(bottom, conv, cnn_net, **kwargs):
     try:
-        bottleneck = net._param["bottleneck"]
+        bottleneck = cnn_net._param["bottleneck"]
     except:
         bottleneck = False  
 
-    if args.bottleneck:
+    if bottleneck:
         channel = kwargs.pop("channel")
         kernel = kwargs.pop("kernel") if "kernel" in kwargs else 3
-        top = conv(kernel = 1, channel = channel / 4, **kwargs) 
-        top = conv(kernel = 3, channel = channel / 4, **kwargs)
-        top = conv(kernel = 1, channel = channel, relu = False, **kwargs)
+        top = conv(bottom, kernel = 1, channel = channel / 4, **kwargs) 
+        top = conv(top, kernel = 3, channel = channel / 4, **kwargs)
+        top = conv(top, kernel = 1, channel = channel, relu = False, **kwargs)
     else:
-        top = conv(**kwargs)
-        top = conv(**kwargs, relu = False)
+        top = conv(bottom, **kwargs)
+        top = conv(top, relu = False, **kwargs)
     top = L.Eltwise(bottom, top)
-    top = self.net.brelu(top)
+    top = cnn_net.brelu(top)
     return top

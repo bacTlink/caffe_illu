@@ -7,23 +7,23 @@
 ##########################################################
 
 from pycaffe import L
-from conv_BN_scale_relu import conv_BN_scale_relu as conv
+from conv_BN_scale_relu import ConvBNScaleReLU as conv
 
 class SimpleCNN:
-    def __init__(self, Type, config = None, mode = None, **kwargs):
+    def __init__(self, session, config = None, mode = None, **kwargs):
         self._param = {}
-        self.name = config[Type]
+        self.name = config[session]
         self._param.update(config)
         self._param.update(config[self.name])
         self.relu = L.ReLU
         self._param["mode"] = mode or "training"
+        self.conv = conv(self)
 
     def build(self, data):
         conv_num = self._param["conv_num"]
         top = data
         stages = []
-        conv_bn_scale_relu = conv(net = self)
-        top = conv_bn_scale_relu(top, 
+        top = self.conv(top, 
                 bn = True,
                 relu = True,
                 kernel = 7,
@@ -37,7 +37,7 @@ class SimpleCNN:
         channel_plus = self._param["channel_plus"]
         for i in xrange(conv_num):
             channel *= channel_plus
-            top = conv_bn_scale_relu(top, 
+            top = self.conv(top, 
                     bn = True, 
                     relu = True, 
                     channel = channel)
@@ -48,5 +48,13 @@ class SimpleCNN:
                     pool = 1))
         top = L.InnerProduct(top,
                 name = "fc",
-                inner_product_param = dict(num_output = 2))
+                inner_product_param = dict(num_output = 2),
+                **self.check_freeze(None, 2))
         return top
+
+    def check_freeze(self, param, blob_num):
+        param = param or dict()
+        freeze = self.freeze
+        if freeze:
+            param["param"] = [dict(lr_mult = 0, decay_mult = 0)]*blob_num
+        return param
