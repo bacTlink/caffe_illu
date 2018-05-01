@@ -21,16 +21,11 @@ if not os.path.exists(dst_dir):
 def sec_into_224(pics):
     assert pics.ndim == 3
     if pics.shape[1] == 224:
-        return pics.reshape(1, pics.shape[0], pics.shape[1], pics.shape[2])
+        return pics
     assert pics.shape[1] == 672
-    for i in xrange(3):
-        for j in xrange(3):
-            tmp = pics[:, i*224:i*224+224, j*224:j*224+224].reshape(1, pics.shape[0], 224, 224)
-            if i == 0 and j == 0:
-                res = tmp
-            else:
-                res = np.append(res, tmp, axis = 0)
-    return res
+    x = random.randint(0,672-224)
+    y = random.randint(0,672-224)
+    return pics[:, x:x+224, y:y+224]
 
 def mse(pic1, pic2):
     assert pic1.ndim == 2
@@ -57,6 +52,7 @@ test_env = lmdb.open(test_path, map_size=int(1e12))
 train_txn = train_env.begin(write=True)
 test_txn = test_env.begin(write=True)
 cnt = 0
+tot_cnt = 0
 for line in open(filelist):
     label_filename = line[:-1]
     print label_filename
@@ -89,18 +85,17 @@ for line in open(filelist):
         data[i] = sec_into_224(data[i])
 
     for i in xrange(3):
-        for j in xrange(data[i].shape[0]):
-            datum = caffe.io.array_to_datum(np.append(label[i][j,:,:,:], data[i][j,:,:,:], axis = 0))
-            if random.randint(0, 100) == 0:
-                classification = 'test'
-            else:
-                classification = 'train'
-            if classification == 'train':
-                img_id = str(random.randint(0, int(1e10))) + '-' + base_filename + 'c' + str(i)
-                train_txn.put(img_id, datum.SerializeToString())
-            else:
-                img_id = base_filename + 'c' + str(i)
-                test_txn.put(img_id, datum.SerializeToString())
+        datum = caffe.io.array_to_datum(np.append(label[i], data[i], axis = 0))
+        tot_cnt += 1
+        if random.randint(0, 100) == 0:
+            classification = 'test'
+        else:
+            classification = 'train'
+        img_id = str(tot_cnt)
+        if classification == 'train':
+            train_txn.put(img_id, datum.SerializeToString())
+        else:
+            test_txn.put(img_id, datum.SerializeToString())
 
     cnt = cnt + 1
     if (cnt == 100):
