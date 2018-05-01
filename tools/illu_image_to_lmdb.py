@@ -18,14 +18,15 @@ img_count = 10
 if not os.path.exists(dst_dir):
     os.makedirs(dst_dir)
 
-def sec_into_224(pics):
-    assert pics.ndim == 3
-    if pics.shape[1] == 224:
-        return pics
-    assert pics.shape[1] == 672
+def sec_into_224(pic1, pic2):
+    assert pic1.ndim == 3
+    assert pic2.ndim == 3
+    if pic1.shape[1] == 224:
+        return pic1, pic2
+    assert pic1.shape[1] == 672
     x = random.randint(0,672-224)
     y = random.randint(0,672-224)
-    return pics[:, x:x+224, y:y+224]
+    return pic1[:, x:x+224, y:y+224], pic2[:, x:x+224, y:y+224]
 
 def mse(pic1, pic2):
     assert pic1.ndim == 2
@@ -81,8 +82,7 @@ for line in open(filelist):
                 data[i] = np.append(data[i], tmp_data, axis = 0)
 
     for i in xrange(3):
-        label[i] = sec_into_224(label[i])
-        data[i] = sec_into_224(data[i])
+        label[i], data[i] = sec_into_224(label[i], data[i])
 
     for i in xrange(3):
         datum = caffe.io.array_to_datum(np.append(label[i], data[i], axis = 0))
