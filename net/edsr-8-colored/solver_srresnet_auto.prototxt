@@ -1,0 +1,15 @@
+net: "train_srresnet_auto.prototxt"
+type: "Adam"
+# default momentum: 0.9
+momentum: 0.9
+# default momentum2: 0.999
+momentum2: 0.999
+# default delta: 1e-8
+# delta: 0.00000001
+base_lr: 0.0001
+lr_policy: "fixed"
+display: 100
+max_iter: 1000000
+snapshot: 10000
+snapshot_prefix: "snapshots/BOX-colored"
+solver_mode: GPU
