@@ -18,8 +18,7 @@ sys.path.append(caffe_path)
 import numpy as np
 import caffe
 import lmdb
-
-import cv2
+import skimage.io
 
 def GetOneFromLMDB(lmdb_path, index = 0):
     lmdb_env = lmdb.open(lmdb_path, readonly = True)
@@ -74,33 +73,22 @@ def GetOnePic(net, index, use_train = False):
         else:
             tmpdata = GetOneFromLMDB(prefix + "label,data/", index + i)
             data = np.append(data, tmpdata.reshape(1, tmpdata.shape[0], tmpdata.shape[1], tmpdata.shape[2]), axis = 0)
-            label = np.append(tmpdata[0, :, :].reshape(1, 224, 224), label, axis = 0)
+            label = np.append(label, tmpdata[0, :, :].reshape(1, 224, 224), axis = 0)
         net.blobs['Input1'].data[...] = data[i]
         net.forward()
         if i == 0:
             output = net.blobs['Convolution18'].data[0]
         else:
-            output = np.append(net.blobs['Convolution18'].data[0], output, axis = 0)
+            output = np.append(output, net.blobs['Convolution18'].data[0], axis = 0)
     index /= 3
 
     output = np.maximum(0, output)
     output = np.minimum(1, output)
-    label = np.maximum(0, label)
-    label = np.minimum(1, label)
     print output.shape
-    pic = (output * 255).copy()
-    pic = pic.astype(np.uint8)
-    pic = np.transpose(pic, (1, 2, 0))
-    cv2.imwrite("test" + str(index) + ".png", pic)
-    pic2 = (label * 255).copy()
-    pic2 = np.transpose(pic2, (1, 2, 0))
-    cv2.imwrite("train" + str(index) + ".png", pic2)
-    loss = 0
-    for i in range(224):
-        for j in range(224):
-            v = float(pic[i][j][0] - pic2[i][j][0]) * (1.0 / 255.0)
-            loss += v * v
-    print loss;
+    pic = np.transpose(output, (1, 2, 0))
+    pic2 = np.transpose(label, (1, 2, 0))
+    res = np.concatenate((pic, pic2), axis = 1)
+    skimage.io.imsave("res" + str(index) + ".png", res)
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()

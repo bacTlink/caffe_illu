@@ -7,7 +7,7 @@ layer {
     crop_size: 224
   }
   data_param {
-    source: "/data3/lzh/10000x10x224x224_box_colored_diff/train-label,data"
+    source: "/data3/lzh/10000x10x224x224_Diamond_colored_diff/train-label,data"
     batch_size: 11
     backend: LMDB
     prefetch: 20

@@ -17,7 +17,7 @@ import caffe
 import lmdb
 import skimage.io
 
-src_dir = '/data3/lzh/10000x672x672_box_diff/'
+src_dir = '/data3/lzh/10000x672x672_Diamond_diff/'
 filelist = os.path.join(src_dir, 'filelist.txt')
 img_count = 10
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     cnt = -1
     for line in open(filelist):
         cnt = cnt + 1
-        if (cnt >= 10):
+        if (cnt >= 50):
             break
         label_filename = line[:-1]
 
@@ -73,6 +73,6 @@ if __name__ == "__main__":
         output = np.minimum(1, output)
         print output.shape
         pic = np.transpose(output, (1, 2, 0))
-        skimage.io.imsave("test" + str(cnt) + ".png", pic)
         pic2 = np.transpose(label, (1, 2, 0))
-        skimage.io.imsave("train" + str(cnt) + ".png", pic2)
+        res = np.concatenate((pic, pic2), axis = 1)
+        skimage.io.imsave("res" + str(cnt) + ".png", res)

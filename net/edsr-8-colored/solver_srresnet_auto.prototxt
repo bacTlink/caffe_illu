@@ -11,5 +11,5 @@ lr_policy: "fixed"
 display: 100
 max_iter: 1000000
 snapshot: 10000
-snapshot_prefix: "snapshots/BOX-colored"
+snapshot_prefix: "snapshots/DIAMOND-colored"
 solver_mode: GPU

@@ -55,10 +55,10 @@ def GetNet(net, weights, gpu):
 
 def GetOnePic(net, index, use_train = False):
     if use_train:
-        prefix = "/data3/lzh/10000x10x224x224_box_colored_diff/train-"
+        prefix = "/data3/lzh/10000x10x224x224_Diamond_colored_diff/train-"
         #prefix = "/data3/lzh/10000x10x224x224_Diamond_colored_diff/train-"
     else:
-        prefix = "/data3/lzh/10000x10x224x224_box_colored_diff/test-"
+        prefix = "/data3/lzh/10000x10x224x224_Diamond_colored_diff/test-"
         #prefix = "/data3/lzh/10000x10x224x224_Diamond_colored_diff/test-"
     data = GetOneFromLMDB(prefix + "label,data/", index)
     net.blobs['Input1'].data[...] = data
@@ -72,9 +72,9 @@ def GetOnePic(net, index, use_train = False):
     output = np.minimum(1, output)
     print output.shape
     pic = np.transpose(output, (1, 2, 0))
-    skimage.io.imsave("test" + str(index) + ".png", pic)
     pic2 = np.transpose(label, (1, 2, 0))
-    skimage.io.imsave("train" + str(index) + ".png", pic2)
+    res = np.concatenate((pic, pic2), axis = 1)
+    skimage.io.imsave("res" + str(index) + ".png", res)
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
