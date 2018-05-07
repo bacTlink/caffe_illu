@@ -40,12 +40,14 @@ class ConvBNScaleReLU:
                            relu = True,
                            **kwargs):
         self.kwargs = kwargs
+        if not "name" in self.kwargs and self.getparam("auto_name", False):
+            self.kwargs["name"] = self.net.layer_name("convolution")
         top = L.Convolution(bottom, **self.conv_param())
         if bn:
             top = L.BatchNorm(top, **self.bn_param())
             top = L.Scale(top, **self.scale_param())
         if relu:
-            top = self.net.relu(top, in_place = True)
+            top = self.net.relu(top, **self.relu_param())
         return top
     
     def conv_param(self):
@@ -93,6 +95,13 @@ class ConvBNScaleReLU:
         if "name" in self.kwargs:
             param["name"] = self.kwargs["name"] + "_scale"
         self.check_freeze(param, 2) #scale has 2 blobs
+        return param
+    
+    def relu_param(self):
+        self._subp = "relu"
+        param = {"in_place": True}
+        if "name" in self.kwargs:
+            param["name"] = self.kwargs["name"] + "_relu"
         return param
 
     def check_freeze(self, *kargs, **kwargs):

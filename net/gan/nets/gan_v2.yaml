@@ -1,0 +1,63 @@
+net:
+    G: edsr8
+    P: conv4
+
+    edsr8:
+        type: SimpleResnet
+        auto_name: True
+        channel: 64
+        bottleneck: False
+        block_num: 8
+        layer:
+            conv:
+                kernel: 3
+                stride: 1
+                pad:    1
+                weight_filler: "msra"
+            scale:
+                param:
+                    - lr_mult: 1
+                    - lr_mult: 2
+
+    conv4:
+        type: SimpleCNN 
+        auto_name: True
+        conv_num: 3
+        channel: 64
+        channel_plus: 2
+        map_size: 7
+        layer:
+            conv:
+                kernel: 3
+                stride: 2
+                pad:    1
+                weight_filler: "xavier"
+            scale:
+                param: 
+                    - lr_mult: 1
+                    - lr_mult: 0.01
+
+    conv2:
+        type: SimpleCNN
+        auto_name: True
+        conv_num: 1
+        channel: 64
+        channel_plus: 2
+        map_size: 56
+        layer:
+            conv:
+                kernel: 1
+                stride: 1
+                pad:    0
+                weight_filler: "xavier"
+            scale:
+                param:
+                    - lr_mult: 1
+                    - lr_mult: 0.01
+data:
+    batch_size: 1
+    prefix: /data3/lzh/10000x10x224x224_ring_colored_diff_filtered/
+
+loss:
+    RefLoss: True
+    MSELoss: True

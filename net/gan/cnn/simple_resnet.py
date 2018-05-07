@@ -24,8 +24,7 @@ class SimpleResnet(SimpleCNN):
             top = block(top, kernel = 3, conv = self.conv, cnn_net = self)
         #output
         top = L.Eltwise(first_conv, top)
-        top = self.conv(top, relu = False, 
+        top = self.conv(top, relu = False, bn = True,
                 channel = 1, 
-                name = "Output",
-                **self.check_freeze(None, 2))
+                name = "Output")
         return top

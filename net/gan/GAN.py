@@ -49,10 +49,14 @@ class GAN:
 
     def concat_label_output(self, label, output):
         #build cls label with batch_size * 2
-        return L.Concat(label, output,
-                name = "ClsData",
-                concat_param = dict(axis = 0),
-                propagate_down  = [0, 1])
+        label_output = L.Concat(label, output,
+                propagate_down = [0, 1])
+        output_label = L.Concat(output, label, 
+                propagate_down = [1, 0])
+        return L.Concat(label_output, output_label,
+                axis = 0,
+                name = "ClsData")
+
 
     def trainG_net(self):
         mode = "training"
