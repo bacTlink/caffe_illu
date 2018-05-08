@@ -17,7 +17,7 @@ import caffe
 import lmdb
 import skimage.io
 
-src_dir = '/data3/lzh/10000x672x672_Diamond_diff/'
+src_dir = '/data3/lzh/10000x672x672_torus_diff/'
 filelist = os.path.join(src_dir, 'filelist.txt')
 img_count = 10
 
