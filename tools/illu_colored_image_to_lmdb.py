@@ -11,7 +11,7 @@ import shutil
 import random
 
 src_dir = '/data3/lzh/10000x672x672_Diamond_diff/'
-dst_dir = '/data3/lzh/10000x10x224x224_Diamond_diff/'
+dst_dir = '/data3/lzh/10000x10x224x224_Diamond_colored_diff/'
 filelist = os.path.join(src_dir, 'filelist.txt')
 img_count = 10
 
@@ -19,14 +19,14 @@ if not os.path.exists(dst_dir):
     os.makedirs(dst_dir)
 
 def sec_into_224(pic1, pic2):
-    assert pic1.ndim == 4
-    assert pic2.ndim == 4
-    if pic1.shape[2] == 224:
+    assert pic1.ndim == 3
+    assert pic2.ndim == 3
+    if pic1.shape[1] == 224:
         return pic1, pic2
-    assert pic1.shape[2] == 672
+    assert pic1.shape[1] == 672
     x = random.randint(0,672-224)
     y = random.randint(0,672-224)
-    return pic1[:, :, x:x+224, y:y+224], pic2[:, :, x:x+224, y:y+224]
+    return pic1[:, x:x+224, y:y+224], pic2[:, x:x+224, y:y+224]
 
 def mse(pic1, pic2):
     assert pic1.ndim == 2
@@ -61,12 +61,7 @@ for line in open(filelist):
     # process label
     label_img = caffe.io.load_image(os.path.join(src_dir, label_filename))
     shape = label_img.shape
-    label = []
-    for i in xrange(3):
-        if i == 0:
-            label = label_img[:, :, i].reshape(1, 1, shape[0], shape[1])
-        else:
-            label = np.append(label, label_img[:, :, i].reshape(1, 1, shape[0], shape[1]), axis = 0)
+    label = label_img.transpose(2, 0, 1)
 
     # process data
     base_filename = label_filename[:-9]
@@ -74,20 +69,12 @@ for line in open(filelist):
     for i in xrange(1, img_count + 1):
         filename = base_filename + '_' + str(i) + '.png'
         imgs.append(caffe.io.load_image(os.path.join(src_dir, filename)))
-    data = []
-    for i in xrange(3):
-        img_data = np.array(0)
-        for img in imgs:
-            tmp_data = img[:, :, i].reshape(1, shape[0], shape[1])
-            if img_data.size == 1:
-                img_data = tmp_data
-            else:
-                img_data = np.append(img_data, tmp_data, axis = 0)
-        img_data = img_data.reshape(1, img_count, shape[0], shape[1])
-        if i == 0:
-            data = img_data
+    data = np.array(0)
+    for img in imgs:
+        if data.size == 1:
+            data = img.transpose(2, 0, 1)
         else:
-            data = np.append(data, img_data, axis = 0)
+            data = np.append(data, img.transpose(2, 0, 1), axis = 0)
 
     print label.shape
     print data.shape
@@ -97,16 +84,15 @@ for line in open(filelist):
         classification = 'test'
     else:
         classification = 'train'
-    for i in xrange(3):
-        datum = caffe.io.array_to_datum(np.append(label[i], data[i], axis = 0))
-        img_id = str(tot_cnt)
-        while len(img_id) < 6:
-            img_id = '0' + img_id
-        img_id += 'c' + str(i)
-        if classification == 'train':
-            train_txn.put(img_id, datum.SerializeToString())
-        else:
-            test_txn.put(img_id, datum.SerializeToString())
+    datum = caffe.io.array_to_datum(np.append(label, data, axis = 0))
+    img_id = str(tot_cnt)
+    while len(img_id) < 6:
+        img_id = '0' + img_id
+    img_id += 'c' + str(i)
+    if classification == 'train':
+        train_txn.put(img_id, datum.SerializeToString())
+    else:
+        test_txn.put(img_id, datum.SerializeToString())
 
     cnt = cnt + 1
     tot_cnt = tot_cnt + 1
