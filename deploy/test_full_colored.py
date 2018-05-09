@@ -17,7 +17,9 @@ import caffe
 import lmdb
 import skimage.io
 
-src_dir = '/data3/lzh/10000x672x672_torus_diff/'
+#src_dir = '/data3/lzh/10000x672x672_torus_diff/'
+src_dir = '/data3/lzh/10000x672x672_box_diff/'
+#src_dir = '/data3/lzh/10000x672x672_Diamond_diff'
 filelist = os.path.join(src_dir, 'filelist.txt')
 img_count = 10
 
@@ -40,7 +42,7 @@ if __name__ == "__main__":
     cnt = -1
     for line in open(filelist):
         cnt = cnt + 1
-        if (cnt >= 50):
+        if (cnt >= 10):
             break
         label_filename = line[:-1]
 
@@ -64,7 +66,7 @@ if __name__ == "__main__":
 
         net.blobs['Input1'].data[...] = np.append(label, data, axis = 0)
         net.forward()
-        output = net.blobs['Convolution18'].data[0]
+        output = net.blobs['Convolution22'].data[0]
         label = net.blobs['Slice1'].data[0]
         loss = net.blobs['Loss'].data
         print loss
@@ -76,3 +78,10 @@ if __name__ == "__main__":
         pic2 = np.transpose(label, (1, 2, 0))
         res = np.concatenate((pic, pic2), axis = 1)
         skimage.io.imsave("res" + str(cnt) + ".png", res)
+
+        for key in ["Convolution1", "Eltwise3", "Eltwise6", "Eltwise9", "Deconvolution1", "Deconvolution2", "Deconvolution3"]:
+            im = net.blobs[key].data[0][:3, ...]
+            im = np.maximum(0, np.minimum(1, im))
+            print im.shape
+            im = np.transpose(im, (1, 2, 0))
+            skimage.io.imsave("%s-%d.png" % (key, cnt), im)

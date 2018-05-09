@@ -14,80 +14,105 @@ from util import find_caffe
 import caffe
 from caffe import layers as L, params as P
 
-def build_Data(net, split, prefix, batch_size, mode = "FLUX_DIS"):
-    if split == "train":
-        return build_Train_Data(net, prefix, batch_size, mode)
-    elif split == "test":
-        if mode == "FLUX_DIS":
-            return build_Test_Data(net)
-        elif mode == "PICS":
-            return build_Test_Data_Pic(net)
-        else:
-            print "Unknown type"
-
-def build_Train_Data(net, prefix, batch_size, mode = "FLUX_DIS"):
-    if mode == "FLUX_DIS":
-        dis_data_file = prefix + "/raw_data_photon_dis"
-        flux_data_file = prefix + "/raw_data_photon_flux"
-        dis_scale = 0.01000000
-        flux_scale = 1.0
-
-        dis_data, dis_name = \
-            L.Data(source = dis_data_file,
-                   backend = P.Data.LMDB,
-                   batch_size = batch_size,
-                   ntop = 2,
-                   transform_param = dict(scale = dis_scale))
-
-        flux_data, flux_name = \
-            L.Data(source = flux_data_file,
-                   backend = P.Data.LMDB,
-                   batch_size = batch_size,
-                   ntop = 2,
-                   transform_param = dict(scale = flux_scale))
-        data = L.Concat(dis_data, flux_data, ntop = 1)
-
-        label_file = prefix + "/raw_data_conv"
-        label_scale = 0.00390625
-
-        label, label_name = \
-            L.Data(source = label_file,
-                   backend = P.Data.LMDB,
-                   batch_size = batch_size,
-                   ntop = 2,
-                   transform_param = dict(scale = label_scale))
-        if args.shuffle_channel:
-            dis_data, flux_data = L.ShuffleChannel(dis_data, flux_data, ntop = 2);
-        net.Silence = L.Silence(dis_name, flux_name, label_name,
-                        ntop = 0)
-    elif mode == "PICS":
-        label_data_file = prefix + "/label,data"
-
-        label_data = \
-            L.Data(source = label_data_file,
-                   backend = P.Data.LMDB,
-                   batch_size = batch_size,
-                   transform_param = dict(
-                       mirror = True,
-                       crop_size = 224))
-        label, data = L.Slice(label_data, slice_param = dict(slice_point = [1]), ntop = 2)
-        net.Silence = L.Silence(label_data,
-                                ntop = 0)
-
+#def build_Data(net, split, prefix, batch_size, mode = "FLUX_DIS"):
+#    if split == "train":
+#        return build_Train_Data(net, prefix, batch_size, mode)
+#    elif split == "test":
+#        if mode == "FLUX_DIS":
+#            return build_Test_Data(net)
+#        elif mode == "PICS":
+#            return build_Test_Data_Pic(net)
+#        else:
+#            print "Unknown type"
+#
+#def build_Train_Data(net, prefix, batch_size, mode = "FLUX_DIS"):
+#    if mode == "FLUX_DIS":
+#        dis_data_file = prefix + "/raw_data_photon_dis"
+#        flux_data_file = prefix + "/raw_data_photon_flux"
+#        dis_scale = 0.01000000
+#        flux_scale = 1.0
+#
+#        dis_data, dis_name = \
+#            L.Data(source = dis_data_file,
+#                   backend = P.Data.LMDB,
+#                   batch_size = batch_size,
+#                   ntop = 2,
+#                   transform_param = dict(scale = dis_scale))
+#
+#        flux_data, flux_name = \
+#            L.Data(source = flux_data_file,
+#                   backend = P.Data.LMDB,
+#                   batch_size = batch_size,
+#                   ntop = 2,
+#                   transform_param = dict(scale = flux_scale))
+#        data = L.Concat(dis_data, flux_data, ntop = 1)
+#
+#        label_file = prefix + "/raw_data_conv"
+#        label_scale = 0.00390625
+#
+#        label, label_name = \
+#            L.Data(source = label_file,
+#                   backend = P.Data.LMDB,
+#                   batch_size = batch_size,
+#                   ntop = 2,
+#                   transform_param = dict(scale = label_scale))
+#        if args.shuffle_channel:
+#            dis_data, flux_data = L.ShuffleChannel(dis_data, flux_data, ntop = 2);
+#        net.Silence = L.Silence(dis_name, flux_name, label_name,
+#                        ntop = 0)
+#    elif mode == "PICS":
+#        label_data_file = prefix + "/label,data"
+#
+#        label_data = \
+#            L.Data(source = label_data_file,
+#                   backend = P.Data.LMDB,
+#                   batch_size = batch_size,
+#                   transform_param = dict(
+#                       mirror = True,
+#                       crop_size = 224))
+#        label, data = L.Slice(label_data, slice_param = dict(slice_point = [1]), ntop = 2)
+#        net.Silence = L.Silence(label_data,
+#                                ntop = 0)
+#
+#    return data, label
+#
+#def build_Test_Data(net,
+#                    dis_shape = [1, 20, 224, 224],
+#                    flux_shape = [1, 20, 224, 224]):
+#    dis_data = L.Input(input_param = dict(
+#        shape = dict(dim = dis_shape)))
+#    flux_data = L.Input(input_param = dict(
+#        shape = dict(dim = flux_shape)))
+#    net.Data1 = dis_data
+#    net.Data3 = flux_data
+#
+#    data = L.Concat(dis_data, flux_data, ntop = 1)
+#    return data, 0
+#
+def Build_Train_Data(prefix, batch_size):
+    label_data_file = prefix + "/label,data"
+    label_data = \
+        L.Data(source = label_data_file,
+               backend = P.Data.LMDB,
+               batch_size = batch_size,
+               transform_param = dict(
+                   mirror = True,
+                   crop_size = 224))
+    label, data = L.Slice(label_data, slice_param = dict(slice_point = [3]), ntop = 2)
     return data, label
 
-def build_Test_Data(net,
-                    dis_shape = [1, 20, 224, 224],
-                    flux_shape = [1, 20, 224, 224]):
-    dis_data = L.Input(input_param = dict(
-        shape = dict(dim = dis_shape)))
-    flux_data = L.Input(input_param = dict(
-        shape = dict(dim = flux_shape)))
-    net.Data1 = dis_data
-    net.Data3 = flux_data
+def Build_Test_Data(input_shape = [1, 33, 224, 224]):
+    label_data = L.Input(name = "Input",
+        input_param = dict(shape = dict(dim = input_shape)))
+    label, data = L.Slice(label_data, slice_param = dict(slice_point = [3]), ntop = 2)
+    return data, label
 
-    data = L.Concat(dis_data, flux_data, ntop = 1)
-    return data, 0
+def build_Data(net, split, prefix, batch_size, mode):
+    if split == "train":
+        return Build_Train_Data(prefix, batch_size)
+    elif split == "test":
+        return Build_Test_Data()
+
 
 def build_Test_Data_Pic(net,
                         input_shape = [1, 10, 224, 224]):
@@ -104,11 +129,11 @@ def build_Resnet(split, bottom, repeat, stage_num, channels, stage_list = None):
                            stride = 2,
                            pad = 3)
 
- #   result = L.Pooling(result,
- #                      pooling_param = dict(kernel_size = 3,
- #                                           stride = 2,
- #                                           pool = 0)
- #                      )
+    #result = L.Pooling(result,
+    #                   pooling_param = dict(kernel_size = 3,
+    #                                        stride = 2,
+    #                                        pool = 0)
+    #                   )
 
     #channels *= 4
     if stage_list is None:
@@ -244,7 +269,7 @@ def deriv(bottom, name, num):
     return L.Concat(d_c_h, d_c_w, name = name)
 
 def build_Loss(split, data, bottom, label):
-    net_result = L.Convolution(bottom,kernel_size = 1,stride = 1,num_output = 1,
+    net_result = L.Convolution(bottom,kernel_size = 1,stride = 1,num_output = 3,
                          pad = 0,bias_term = True,
                          weight_filler = dict(type = 'xavier'),
                          bias_filler = dict(type = 'constant'))

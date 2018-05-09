@@ -55,15 +55,15 @@ def GetNet(net, weights, gpu):
 
 def GetOnePic(net, index, use_train = False):
     if use_train:
-        prefix = "/data3/lzh/10000x10x224x224_Diamond_colored_diff/train-"
+        prefix = "/data3/lzh/10000x10x224x224_box_colored_diff/train-"
         #prefix = "/data3/lzh/10000x10x224x224_Diamond_colored_diff/train-"
     else:
-        prefix = "/data3/lzh/10000x10x224x224_Diamond_colored_diff/test-"
+        prefix = "/data3/lzh/10000x10x224x224_box_colored_diff/test-"
         #prefix = "/data3/lzh/10000x10x224x224_Diamond_colored_diff/test-"
     data = GetOneFromLMDB(prefix + "label,data/", index)
     net.blobs['Input1'].data[...] = data
     net.forward()
-    output = net.blobs['Convolution18'].data[0]
+    output = net.blobs['Convolution22'].data[0]
     label = net.blobs['Slice1'].data[0]
     loss = net.blobs['Loss'].data
     print loss
