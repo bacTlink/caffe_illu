@@ -10,8 +10,8 @@ import lmdb
 import shutil
 import random
 
-src_dir = '/data3/lzh/10000x672x672_Diamond_diff/'
-dst_dir = '/data3/lzh/10000x10x224x224_Diamond_colored_diff/'
+src_dir = '/data3/lzh/10000x672x672_box3_diff/'
+dst_dir = '/data3/lzh/10000x10x224x224_box3_colored_diff/'
 filelist = os.path.join(src_dir, 'filelist.txt')
 img_count = 10
 
@@ -88,7 +88,6 @@ for line in open(filelist):
     img_id = str(tot_cnt)
     while len(img_id) < 6:
         img_id = '0' + img_id
-    img_id += 'c' + str(i)
     if classification == 'train':
         train_txn.put(img_id, datum.SerializeToString())
     else:

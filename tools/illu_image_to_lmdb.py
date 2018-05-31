@@ -10,10 +10,10 @@ import lmdb
 import shutil
 import random
 
-src_dir = '/data3/lzh/10000x672x672_Diamond_diff/'
-dst_dir = '/data3/lzh/10000x10x224x224_Diamond_diff/'
+src_dir = '/data3/lzh/10000x672x672_box2_diff/'
+dst_dir = '/data3/lzh/10000x2x224x224_box2_diff/'
 filelist = os.path.join(src_dir, 'filelist.txt')
-img_count = 10
+img_count = 2
 
 if not os.path.exists(dst_dir):
     os.makedirs(dst_dir)
@@ -72,7 +72,7 @@ for line in open(filelist):
     base_filename = label_filename[:-9]
     imgs = []
     for i in xrange(1, img_count + 1):
-        filename = base_filename + '_' + str(i) + '.png'
+        filename = base_filename + '_' + str(i * 9 - 8) + '.png'
         imgs.append(caffe.io.load_image(os.path.join(src_dir, filename)))
     data = []
     for i in xrange(3):

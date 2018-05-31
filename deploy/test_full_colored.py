@@ -16,8 +16,9 @@ sys.path.append(caffe_path)
 import caffe
 import lmdb
 import skimage.io
+import cv2
 
-src_dir = '/data3/lzh/10000x672x672_torus_diff/'
+src_dir = '/data3/lzh/10000x672x672_CornellBox_diff/'
 filelist = os.path.join(src_dir, 'filelist.txt')
 img_count = 10
 
@@ -75,4 +76,13 @@ if __name__ == "__main__":
         pic = np.transpose(output, (1, 2, 0))
         pic2 = np.transpose(label, (1, 2, 0))
         res = np.concatenate((pic, pic2), axis = 1)
-        skimage.io.imsave("res" + str(cnt) + ".png", res)
+        skimage.io.imsave("/home/linzehui/res" + str(cnt) + ".png", res)
+
+        #res = cv2.imread("/home/linzehui/res" + str(cnt) + ".png")
+        #x = 120
+        #y = 260
+        #cv2.rectangle(res,(y,x),(y + 100,x + 100),(55,55,255),5)
+        #cv2.rectangle(res,(y + 672,x),(y + 672 + 100,x + 100),(55,55,255),5)
+        #res = np.concatenate((res[x:x+100, y:y+100, :],res[x:x+100,y+672:y+672+100,:]), axis = 1)
+        #cv2.imwrite("/home/linzehui/res" + str(cnt) + ".png", res)
+        #break
